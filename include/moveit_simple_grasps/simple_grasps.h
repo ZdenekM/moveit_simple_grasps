@@ -46,6 +46,7 @@
 
 // Msgs
 #include <geometry_msgs/PoseArray.h>
+#include <shape_msgs/SolidPrimitive.h>
 
 // MoveIt
 #include <moveit_msgs/Grasp.h>
@@ -86,6 +87,9 @@ private:
   // Transform from frame of box to global frame
   Eigen::Affine3d object_global_transform_;
 
+  // Transform from  grasp pose to EEF frame
+  Eigen::Affine3d eef_conversion_pose_;
+
   // Display more output both in console and in Rviz (with arrows and markers)
   bool verbose_;
 
@@ -102,6 +106,12 @@ public:
    */
   ~SimpleGrasps();
 
+  /// Fill the grasp specific pose information from a local grasp pose.
+  void fillGraspFromLocalGraspPose(const Eigen::Affine3d & local_grasp, moveit_msgs::Grasp & grasp);
+
+  /// Initialize a grasp with common data from grasp_data.
+  void initializeGrasp(moveit_msgs::Grasp & grasp, const GraspData & grasp_data);
+
   /**
    * \brief Moved to generateBlockGrasps
    */
@@ -112,6 +122,14 @@ public:
 
     return true;
   }
+
+  /// Generate grasps for a primitive.
+  bool generateShapeGrasps(const shape_msgs::SolidPrimitive & shape, const geometry_msgs::Pose& object_pose,
+          const GraspData& grasp_data, std::vector<moveit_msgs::Grasp>& possible_grasps);
+
+
+  bool generateBoxGrasps(const shape_msgs::SolidPrimitive & shape, const geometry_msgs::Pose& object_pose,
+          const GraspData& grasp_data, std::vector<moveit_msgs::Grasp>& possible_grasps);
 
   /**
    * \brief Create all possible grasp positions for a block

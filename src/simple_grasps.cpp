@@ -33,6 +33,7 @@
  *********************************************************************/
 
 #include <moveit_simple_grasps/simple_grasps.h>
+#include <shape_tools/shape_extents.h>
 
 namespace moveit_simple_grasps
 {
@@ -50,15 +51,183 @@ SimpleGrasps::~SimpleGrasps()
 {
 }
 
+void SimpleGrasps::fillGraspFromLocalGraspPose(const Eigen::Affine3d & local_grasp, moveit_msgs::Grasp & grasp)
+{
+    // Change grasp to frame of reference of this custom end effector
+
+    // grasp point to eef frame
+    Eigen::Affine3d grasp_pose = local_grasp * eef_conversion_pose_;
+
+    // point in eef frame to global frame (base_link)
+    tf::poseEigenToMsg(object_global_transform_ * grasp_pose, grasp.grasp_pose.pose);
+}
+
+void SimpleGrasps::initializeGrasp(moveit_msgs::Grasp & grasp, const GraspData & grasp_data)
+{
+    // Postures
+    grasp.pre_grasp_posture = grasp_data.pre_grasp_posture_;
+    grasp.grasp_posture = grasp_data.grasp_posture_;
+    // grasp_pose
+    grasp.grasp_pose.header.stamp = ros::Time::now();
+    grasp.grasp_pose.header.frame_id = grasp_data.base_link_;
+
+    grasp.grasp_quality = 0.0;
+
+    // Motions
+    grasp.pre_grasp_approach.direction.header.stamp = ros::Time::now();
+    grasp.pre_grasp_approach.direction.header.frame_id = grasp_data.ee_parent_link_;
+    grasp.pre_grasp_approach.direction.vector.x = 1;
+    grasp.pre_grasp_approach.direction.vector.y = 0;
+    grasp.pre_grasp_approach.direction.vector.z = 0;
+    grasp.pre_grasp_approach.desired_distance = grasp_data.approach_retreat_desired_dist_;
+    grasp.pre_grasp_approach.min_distance = grasp_data.approach_retreat_min_dist_;
+
+    grasp.post_grasp_retreat.direction.header.stamp = ros::Time::now();
+    grasp.post_grasp_retreat.direction.header.frame_id = grasp_data.base_link_;
+    grasp.post_grasp_retreat.direction.vector.x = 0;
+    grasp.post_grasp_retreat.direction.vector.y = 0;
+    grasp.post_grasp_retreat.direction.vector.z = 1;
+    grasp.post_grasp_retreat.desired_distance = grasp_data.approach_retreat_desired_dist_;
+    grasp.post_grasp_retreat.min_distance = grasp_data.approach_retreat_min_dist_;
+
+    grasp.post_place_retreat.direction.header.stamp = ros::Time::now();
+    grasp.post_place_retreat.direction.header.frame_id = grasp_data.ee_parent_link_;
+    grasp.post_place_retreat.direction.vector.x = -1;
+    grasp.post_place_retreat.direction.vector.y = 0;
+    grasp.post_place_retreat.direction.vector.z = 0;
+    grasp.post_place_retreat.desired_distance = grasp_data.approach_retreat_desired_dist_;
+    grasp.post_place_retreat.min_distance = grasp_data.approach_retreat_min_dist_;
+
+    // <=0 to disable?
+    grasp.max_contact_force = 0;
+}
+
+bool SimpleGrasps::generateShapeGrasps(const shape_msgs::SolidPrimitive & shape,
+        const geometry_msgs::Pose& object_pose,
+        const GraspData& grasp_data, std::vector<moveit_msgs::Grasp>& possible_grasps)
+{
+    if(shape.type == shape_msgs::SolidPrimitive::BOX) {
+        return generateBoxGrasps(shape, object_pose, grasp_data, possible_grasps);
+    } else {
+        ROS_ERROR("%s: Shape type %d not implemented.", __PRETTY_FUNCTION__, shape.type);
+        return false;
+    }
+}
+
+bool SimpleGrasps::generateBoxGrasps(const shape_msgs::SolidPrimitive & shape, const geometry_msgs::Pose& object_pose,
+        const GraspData& grasp_data, std::vector<moveit_msgs::Grasp>& possible_grasps)
+{
+    // prepare transforms and grasp for this request
+    tf::poseMsgToEigen(object_pose, object_global_transform_);
+    tf::poseMsgToEigen(grasp_data.grasp_pose_to_eef_pose_, eef_conversion_pose_);
+    moveit_msgs::Grasp grasp;
+    initializeGrasp(grasp, grasp_data);
+
+    // these should be correct for a box
+    double wx, wy, wz;
+    shape_tools::getShapeExtents(shape, wx, wy, wz);
+
+    // ---------------------------------------------------------------------------------------------
+    // Angle calculations
+    double radius = grasp_data.grasp_depth_; //0.12
+    double xb;
+    double yb = 0.0; // stay in the y plane of the object
+    double zb;
+    double theta1 = 0.0; // Where the point is located around the object
+    double theta2 = 0.0; // UP 'direction'
+
+    // Gripper direction (UP/DOWN) rotation. UP set by default
+    //if( direction == DOWN )
+    //{
+    //    theta2 = M_PI;
+    //}
+
+  grasp_axis_t axis = Y_AXIS;
+
+    // Begin Grasp Generator Loop
+    /* Developer Note:
+     * Create angles 180 degrees around the chosen axis at given resolution
+     * We create the grasps in the reference frame of the object, then later convert it to the base link
+     */
+    for(int i = 0; i <= grasp_data.angle_resolution_; ++i)
+    {
+        // Calculate grasp pose
+        xb = radius*cos(theta1);
+        zb = radius*sin(theta1);
+
+        Eigen::Affine3d grasp_pose;
+
+        switch(axis)
+        {
+            case X_AXIS:
+                grasp_pose = Eigen::AngleAxisd(theta1, Eigen::Vector3d::UnitX())
+                    * Eigen::AngleAxisd(-0.5*M_PI, Eigen::Vector3d::UnitZ())
+                    * Eigen::AngleAxisd(theta2, Eigen::Vector3d::UnitX()); // Flip 'direction'
+
+                grasp_pose.translation() = Eigen::Vector3d( yb, xb ,zb);
+
+                break;
+            case Y_AXIS:
+                grasp_pose =
+                    Eigen::AngleAxisd(M_PI - theta1, Eigen::Vector3d::UnitY())
+                    *Eigen::AngleAxisd(theta2, Eigen::Vector3d::UnitX()); // Flip 'direction'
+
+                grasp_pose.translation() = Eigen::Vector3d( xb, yb ,zb);
+
+                break;
+            case Z_AXIS:
+                ROS_ERROR_STREAM_NAMED("grasp","Z Axis not implemented!");
+                return false;
+
+                break;
+        }
+
+        /* The estimated probability of success for this grasp, or some other measure of how "good" it is.
+         * Here we base bias the score based on how far the wrist is from the surface, preferring a greater
+         * distance to prevent wrist/end effector collision with the table
+         */
+        double score = sin(theta1);
+        grasp.grasp_quality = std::max(score,0.1); // don't allow score to drop below 0.1 b/c all grasps are ok
+
+        // Calculate the theta1 for next time
+        theta1 += M_PI / grasp_data.angle_resolution_;
+
+        // DEBUG - show original grasp pose before tranform to gripper frame
+        if( verbose_ )
+        {
+            tf::poseEigenToMsg(object_global_transform_ * grasp_pose, grasp.grasp_pose.pose);
+            visual_tools_->publishArrow(grasp.grasp_pose.pose, moveit_visual_tools::GREEN);
+        }
+
+        // Change grasp to frame of reference of this custom end effector
+        fillGraspFromLocalGraspPose(grasp_pose, grasp);
+
+        static int grasp_id = 0;
+        grasp.id = "Grasp" + boost::lexical_cast<std::string>(grasp_id);
+        grasp_id++;
+
+        possible_grasps.push_back(grasp);
+    }
+
+    ROS_INFO_STREAM_NAMED("grasp", "Generated " << possible_grasps.size() << " grasps." );
+
+    return true;
+}
+
+
 // Create all possible grasp positions for a object
 bool SimpleGrasps::generateBlockGrasps(const geometry_msgs::Pose& object_pose, const GraspData& grasp_data,
   std::vector<moveit_msgs::Grasp>& possible_grasps)
 {
   // ---------------------------------------------------------------------------------------------
   // Calculate grasps in two axis in both directions
+  ROS_INFO("Generating X_AXIS DOWN HALF grasps.");
   generateAxisGrasps( object_pose, X_AXIS, DOWN, HALF, 0, grasp_data, possible_grasps); // got no grasps with this alone
+  ROS_INFO("Generating X_AXIS UP HALF grasps.");
   generateAxisGrasps( object_pose, X_AXIS, UP,   HALF, 0, grasp_data, possible_grasps); // gives some grasps... looks ugly
+  ROS_INFO("Generating Y_AXIS DOWN HALF grasps.");
   generateAxisGrasps( object_pose, Y_AXIS, DOWN, HALF, 0, grasp_data, possible_grasps); // GOOD ONES!
+  ROS_INFO("Generating Y_AXIS UP HALF grasps.");
   generateAxisGrasps( object_pose, Y_AXIS, UP,   HALF, 0, grasp_data, possible_grasps); // gave a grasp from top... bad
 
   return true;
@@ -77,6 +246,10 @@ bool SimpleGrasps::generateAxisGrasps(
   // ---------------------------------------------------------------------------------------------
   // Create a transform from the object's frame (center of object) to /base_link
   tf::poseMsgToEigen(object_pose, object_global_transform_);
+
+  // Convert to Eigen
+  tf::poseMsgToEigen(grasp_data.grasp_pose_to_eef_pose_, eef_conversion_pose_);
+
 
   // ---------------------------------------------------------------------------------------------
   // Grasp parameters
@@ -206,12 +379,8 @@ bool SimpleGrasps::generateAxisGrasps(
     // ------------------------------------------------------------------------
     // Change grasp to frame of reference of this custom end effector
 
-    // Convert to Eigen
-    Eigen::Affine3d eef_conversion_pose;
-    tf::poseMsgToEigen(grasp_data.grasp_pose_to_eef_pose_, eef_conversion_pose);
-
     // Transform the grasp pose
-    grasp_pose = grasp_pose * eef_conversion_pose;
+    grasp_pose = grasp_pose * eef_conversion_pose_;
 
     // ------------------------------------------------------------------------
     // Convert pose to global frame (base_link)

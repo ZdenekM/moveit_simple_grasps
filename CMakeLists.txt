@@ -12,12 +12,14 @@ find_package(catkin REQUIRED COMPONENTS
   moveit_visual_tools
   tf
   tf_conversions
+  shape_msgs
   trajectory_msgs
   message_generation
   geometry_msgs
   actionlib
   actionlib_msgs
   moveit_msgs
+  shape_tools
   cmake_modules
 )
 
@@ -52,6 +54,8 @@ catkin_package(
     std_msgs
     message_runtime
     moveit_visual_tools
+    shape_msgs
+    shape_tools
   INCLUDE_DIRS include
 )
 

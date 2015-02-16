@@ -51,7 +51,7 @@
 namespace baxter_pick_place
 {
 
-static const double BLOCK_SIZE = 0.04;
+static const double BLOCK_SIZE = 0.24;
 
 class GraspGeneratorTest
 {
@@ -80,7 +80,7 @@ public:
     : nh_("~")
   {
     nh_.param("arm", arm_, std::string("left"));
-    nh_.param("ee_group_name", ee_group_name_, std::string(arm_ + "_hand"));
+    nh_.param("ee_group_name", ee_group_name_, std::string(arm_ + "_gripper"));
     planning_group_name_ = arm_ + "_arm";
 
     ROS_INFO_STREAM_NAMED("test","Arm: " << arm_);
@@ -95,9 +95,12 @@ public:
     // ---------------------------------------------------------------------------------------------
     // Load the Robot Viz Tools for publishing to Rviz
     visual_tools_.reset(new moveit_visual_tools::VisualTools(grasp_data_.base_link_));
+    visual_tools_->loadMarkerPub();
     visual_tools_->setLifetime(120.0);
     visual_tools_->setMuted(false);
     visual_tools_->loadEEMarker(grasp_data_.ee_group_, planning_group_name_);
+
+    grasp_data_.grasp_depth_ = BLOCK_SIZE/2;
 
     // ---------------------------------------------------------------------------------------------
     // Load grasp generator
@@ -129,11 +132,24 @@ public:
       possible_grasps.clear();
 
       // Generate set of grasps for one object
+      shape_msgs::SolidPrimitive box;
+      box.type = shape_msgs::SolidPrimitive::BOX;
+      box.dimensions.resize(3);
+      box.dimensions[0] = BLOCK_SIZE;
+      box.dimensions[1] = BLOCK_SIZE;
+      box.dimensions[2] = BLOCK_SIZE;
+
+      ROS_INFO("Grasps Block Grasps");
       simple_grasps_->generateBlockGrasps( object_pose, grasp_data_, possible_grasps);
+      visual_tools_->publishGrasps(possible_grasps, grasp_data_.ee_parent_link_);
+
+      possible_grasps.clear();
+      ROS_INFO("Generating Box Grasps");
+      simple_grasps_->generateBoxGrasps(box, object_pose, grasp_data_, possible_grasps);
 
       // Visualize them
-      visual_tools_->publishAnimatedGrasps(possible_grasps, grasp_data_.ee_parent_link_);
-      //visual_tools_->publishGrasps(possible_grasps, grasp_data_.ee_parent_link_);
+      //visual_tools_->publishAnimatedGrasps(possible_grasps, grasp_data_.ee_parent_link_);
+      visual_tools_->publishGrasps(possible_grasps, grasp_data_.ee_parent_link_);
 
       // Test if done
       ++i;
@@ -147,9 +163,9 @@ public:
     // Position
     geometry_msgs::Pose start_object_pose;
 
-    start_object_pose.position.x = 0.4;
-    start_object_pose.position.y = -0.2;
-    start_object_pose.position.z = 0.0;
+    start_object_pose.position.x = 0.7;
+    start_object_pose.position.y = 0.2;
+    start_object_pose.position.z = 1.0;
 
     // Orientation
     double angle = M_PI / 1.5;
@@ -168,9 +184,9 @@ public:
   void generateRandomObject(geometry_msgs::Pose& object_pose)
   {
     // Position
-    object_pose.position.x = fRand(0.1,0.9); //0.55);
-    object_pose.position.y = fRand(-0.28,0.28);
-    object_pose.position.z = 0.02;
+    object_pose.position.x = fRand(0.4,1.2); //0.55);
+    object_pose.position.y = fRand(-0.38,0.38);
+    object_pose.position.z = 0.5;
 
     // Orientation
     double angle = M_PI * fRand(0.1,1);
@@ -194,7 +210,7 @@ public:
 
 int main(int argc, char *argv[])
 {
-  int num_tests = 10;
+  int num_tests = 1;
   ros::init(argc, argv, "grasp_generator_test");
 
   ROS_INFO_STREAM_NAMED("main","Simple Grasps Test");
