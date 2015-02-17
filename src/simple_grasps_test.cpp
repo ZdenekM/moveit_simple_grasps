@@ -51,7 +51,9 @@
 namespace baxter_pick_place
 {
 
-static const double BLOCK_SIZE = 0.15;
+static const double BLOCK_SIZE_X = 0.15;
+static const double BLOCK_SIZE_Y = 0.35;
+static const double BLOCK_SIZE_Z = 0.40;
 
 class GraspGeneratorTest
 {
@@ -86,7 +88,7 @@ public:
     ROS_INFO_STREAM_NAMED("test","Arm: " << arm_);
     ROS_INFO_STREAM_NAMED("test","End Effector: " << ee_group_name_);
     ROS_INFO_STREAM_NAMED("test","Planning Group: " << planning_group_name_);
-    
+
     // ---------------------------------------------------------------------------------------------
     // Load grasp data specific to our robot
     if (!grasp_data_.loadRobotGraspData(nh_, ee_group_name_))
@@ -128,7 +130,8 @@ public:
         generateRandomObject(object_pose);
 
       // Show the block
-      visual_tools_->publishBlock(object_pose, moveit_visual_tools::BLUE, BLOCK_SIZE);
+      visual_tools_->publishBlock(object_pose, moveit_visual_tools::BLUE,
+              BLOCK_SIZE_X, BLOCK_SIZE_Y, BLOCK_SIZE_Z);
 
       possible_grasps.clear();
 
@@ -136,13 +139,13 @@ public:
       shape_msgs::SolidPrimitive box;
       box.type = shape_msgs::SolidPrimitive::BOX;
       box.dimensions.resize(3);
-      box.dimensions[0] = BLOCK_SIZE;
-      box.dimensions[1] = BLOCK_SIZE;
-      box.dimensions[2] = BLOCK_SIZE;
+      box.dimensions[0] = BLOCK_SIZE_X;
+      box.dimensions[1] = BLOCK_SIZE_Y;
+      box.dimensions[2] = BLOCK_SIZE_Z;
 
       //ROS_INFO("Grasps Block Grasps");
       //simple_grasps_->generateBlockGrasps( object_pose, grasp_data_, possible_grasps);
-      //visual_tools_->publishGrasps(possible_grasps, grasp_data_.ee_parent_link_);
+      visual_tools_->publishGrasps(possible_grasps, grasp_data_.ee_parent_link_);
 
       possible_grasps.clear();
       ROS_INFO("Generating Box Grasps");
@@ -223,15 +226,14 @@ int main(int argc, char *argv[])
   srand(ros::Time::now().toSec());
 
   // Benchmark time
-  ros::Time start_time;
-  start_time = ros::Time::now();
+  ros::WallTime start_time = ros::WallTime::now();
 
   // Run Tests
   baxter_pick_place::GraspGeneratorTest tester(num_tests);
 
   // Benchmark time
-  double duration = (ros::Time::now() - start_time).toNSec() * 1e-6;
-  ROS_INFO_STREAM_NAMED("","Total time: " << duration);
+  double duration = (ros::WallTime::now() - start_time).toSec() * 1e3;
+  ROS_INFO_STREAM_NAMED("","Total time: " << duration << " ms");
   //std::cout << duration << "\t" << num_tests << std::endl;
 
   ros::Duration(1.0).sleep(); // let rviz markers finish publishing
