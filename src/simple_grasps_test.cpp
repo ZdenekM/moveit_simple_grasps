@@ -140,9 +140,9 @@ public:
       box.dimensions[1] = BLOCK_SIZE;
       box.dimensions[2] = BLOCK_SIZE;
 
-      ROS_INFO("Grasps Block Grasps");
-      simple_grasps_->generateBlockGrasps( object_pose, grasp_data_, possible_grasps);
-      visual_tools_->publishGrasps(possible_grasps, grasp_data_.ee_parent_link_);
+      //ROS_INFO("Grasps Block Grasps");
+      //simple_grasps_->generateBlockGrasps( object_pose, grasp_data_, possible_grasps);
+      //visual_tools_->publishGrasps(possible_grasps, grasp_data_.ee_parent_link_);
 
       possible_grasps.clear();
       ROS_INFO("Generating Box Grasps");

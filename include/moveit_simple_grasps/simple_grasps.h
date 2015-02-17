@@ -106,12 +106,6 @@ public:
    */
   ~SimpleGrasps();
 
-  /// Fill the grasp specific pose information from a local grasp pose.
-  void fillGraspFromLocalGraspPose(const Eigen::Affine3d & local_grasp, moveit_msgs::Grasp & grasp);
-
-  /// Initialize a grasp with common data from grasp_data.
-  void initializeGrasp(moveit_msgs::Grasp & grasp, const GraspData & grasp_data);
-
   /**
    * \brief Moved to generateBlockGrasps
    */
@@ -189,6 +183,17 @@ public:
     ROS_INFO_STREAM_NAMED("grasp","Grasp Posture: \n" << data.grasp_posture_);
     ROS_INFO_STREAM_NAMED("grasp","---------------------------------------------------\n");
   }
+
+protected:
+
+  /// Fill the grasp specific pose information from a local grasp pose.
+  void fillGraspFromLocalGraspPose(const Eigen::Affine3d & local_grasp, moveit_msgs::Grasp & grasp);
+
+  /// Initialize a grasp with common data from grasp_data.
+  void initializeGrasp(moveit_msgs::Grasp & grasp, const GraspData & grasp_data);
+
+  void addNewGrasp(moveit_msgs::Grasp & grasp, const Eigen::Affine3d & local_grasp_pose,
+          std::vector<moveit_msgs::Grasp> & possible_grasps);
 
 }; // end of class
 

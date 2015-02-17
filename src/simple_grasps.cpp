@@ -114,6 +114,25 @@ bool SimpleGrasps::generateShapeGrasps(const shape_msgs::SolidPrimitive & shape,
     }
 }
 
+void SimpleGrasps::addNewGrasp(moveit_msgs::Grasp & grasp, const Eigen::Affine3d & local_grasp_pose,
+        std::vector<moveit_msgs::Grasp> & possible_grasps)
+{
+    // DEBUG - show original grasp pose before tranform to gripper frame
+    if( verbose_ )
+    {
+        tf::poseEigenToMsg(object_global_transform_ * local_grasp_pose, grasp.grasp_pose.pose);
+        visual_tools_->publishArrow(grasp.grasp_pose.pose, moveit_visual_tools::GREEN);
+    }
+
+    fillGraspFromLocalGraspPose(local_grasp_pose, grasp);
+
+    static int grasp_id = 0;
+    grasp.id = "Grasp" + boost::lexical_cast<std::string>(grasp_id);
+    grasp_id++;
+
+    possible_grasps.push_back(grasp);
+}
+
 bool SimpleGrasps::generateBoxGrasps(const shape_msgs::SolidPrimitive & shape, const geometry_msgs::Pose& object_pose,
         const GraspData& grasp_data, std::vector<moveit_msgs::Grasp>& possible_grasps)
 {
@@ -132,30 +151,44 @@ bool SimpleGrasps::generateBoxGrasps(const shape_msgs::SolidPrimitive & shape, c
     // grasps on the x axis sides, along z
     if(wy <= grasp_data.pre_grasp_opening_) {
         Eigen::Affine3d grasp_pose;
-        // TODO calc dz instead of eps stuff
-        for(double dz = - 0.5 * wz + box_edge_holdoff; dz <= 0.5 * wz - box_edge_holdoff + 1e-3;
-                dz += (wz - 2 * box_edge_holdoff)/(grasp_data.linear_steps_ - 1)) {
+        // sides up
+        for(int zstep = 0; zstep < grasp_data.linear_steps_; zstep++) {
+            double dz = - 0.5 * wz + box_edge_holdoff + 
+                zstep * (wz - 2 * box_edge_holdoff)/(grasp_data.linear_steps_ - 1);
             double dx = - 0.5 * wx + grasp_data.grasp_depth_;   // depth = how much from border in
             double dy = 0.0;
-            grasp_pose = Eigen::AngleAxisd(0.0, Eigen::Vector3d::UnitZ());
-            grasp_pose.translation() = Eigen::Vector3d(dx, dy, dz);
-
-            // DEBUG - show original grasp pose before tranform to gripper frame
-            if( verbose_ )
-            {
-                tf::poseEigenToMsg(object_global_transform_ * grasp_pose, grasp.grasp_pose.pose);
-                visual_tools_->publishArrow(grasp.grasp_pose.pose, moveit_visual_tools::GREEN);
-            }
-
-            fillGraspFromLocalGraspPose(grasp_pose, grasp);
 
             grasp.grasp_quality = cos(M_PI_2 * dz/(0.5 * wz));  // the more centered in z the better
 
-            static int grasp_id = 0;
-            grasp.id = "Grasp" + boost::lexical_cast<std::string>(grasp_id);
-            grasp_id++;
+            grasp_pose = Eigen::AngleAxisd(0.0, Eigen::Vector3d::UnitZ());
+            grasp_pose.translation() = Eigen::Vector3d(dx, dy, dz);
+            addNewGrasp(grasp, grasp_pose, possible_grasps);
 
-            possible_grasps.push_back(grasp);
+            // opposing side
+            grasp_pose = Eigen::AngleAxisd(M_PI, Eigen::Vector3d::UnitZ());
+            grasp_pose.translation() = Eigen::Vector3d(-dx, dy, dz);
+            addNewGrasp(grasp, grasp_pose, possible_grasps);
+        }
+        // top
+        for(int xstep = 0; xstep < grasp_data.linear_steps_; xstep++) {
+            double dz = 0.5 * wz - grasp_data.grasp_depth_;
+            double dy = 0.0;
+            double dx = - 0.5 * wx + box_edge_holdoff + 
+                xstep * (wx - 2 * box_edge_holdoff)/(grasp_data.linear_steps_ - 1);
+
+            // 0.5 to prefer side grasps
+            grasp.grasp_quality = 0.5 * cos(M_PI_2 * dx/(0.5 * wx));  // the more centered in x the better
+
+            grasp_pose = Eigen::AngleAxisd(0.0, Eigen::Vector3d::UnitZ()) *
+                Eigen::AngleAxisd(M_PI_2, Eigen::Vector3d::UnitY());
+            grasp_pose.translation() = Eigen::Vector3d(dx, dy, dz);
+            addNewGrasp(grasp, grasp_pose, possible_grasps);
+
+            // opposing direction
+            grasp_pose = Eigen::AngleAxisd(M_PI, Eigen::Vector3d::UnitZ()) *
+                Eigen::AngleAxisd(M_PI_2, Eigen::Vector3d::UnitY());
+            grasp_pose.translation() = Eigen::Vector3d(dx, dy, dz);
+            addNewGrasp(grasp, grasp_pose, possible_grasps);
         }
     }
 
