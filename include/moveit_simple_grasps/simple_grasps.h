@@ -118,8 +118,10 @@ public:
   bool generateShapeGrasps(const shape_msgs::SolidPrimitive & shape, const geometry_msgs::Pose& object_pose,
           const GraspData& grasp_data, std::vector<moveit_msgs::Grasp>& possible_grasps);
 
-
   bool generateBoxGrasps(const shape_msgs::SolidPrimitive & shape, const geometry_msgs::Pose& object_pose,
+          const GraspData& grasp_data, std::vector<moveit_msgs::Grasp>& possible_grasps);
+
+  bool generateCylinderGrasps(const shape_msgs::SolidPrimitive & shape, const geometry_msgs::Pose& object_pose,
           const GraspData& grasp_data, std::vector<moveit_msgs::Grasp>& possible_grasps);
 
   /**

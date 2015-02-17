@@ -55,6 +55,9 @@ static const double BLOCK_SIZE_X = 0.15;
 static const double BLOCK_SIZE_Y = 0.35;
 static const double BLOCK_SIZE_Z = 0.40;
 
+static const double CYL_RADIUS = 0.05;
+static const double CYL_HEIGHT = 0.11;
+
 class GraspGeneratorTest
 {
 private:
@@ -75,11 +78,12 @@ private:
   std::string ee_group_name_;
   std::string planning_group_name_;
 
+  int num_tests_;
 public:
 
   // Constructor
   GraspGeneratorTest(int num_tests)
-    : nh_("~")
+    : nh_("~"), num_tests_(num_tests)
   {
     nh_.param("arm", arm_, std::string("left"));
     nh_.param("ee_group_name", ee_group_name_, std::string(arm_ + "_gripper"));
@@ -109,7 +113,10 @@ public:
     // Load grasp generator
     simple_grasps_.reset( new moveit_simple_grasps::SimpleGrasps());
     //simple_grasps_.reset( new moveit_simple_grasps::SimpleGrasps(visual_tools_) );
+  }
 
+  void testBoxGrasps()
+  {
     // ---------------------------------------------------------------------------------------------
     // Generate grasps for a bunch of random objects
     geometry_msgs::Pose object_pose;
@@ -122,10 +129,10 @@ public:
     int i = 0;
     while(ros::ok())
     {
-      ROS_INFO_STREAM_NAMED("test","Adding random object " << i+1 << " of " << num_tests);
+      ROS_INFO_STREAM_NAMED("test","Adding random object " << i+1 << " of " << num_tests_);
 
       // Remove randomness when we are only running one test
-      if (num_tests == 1)
+      if (num_tests_ == 1)
         generateTestObject(object_pose);
       else
         generateRandomObject(object_pose);
@@ -146,11 +153,11 @@ public:
 
       //ROS_INFO("Grasps Block Grasps");
       //simple_grasps_->generateBlockGrasps( object_pose, grasp_data_, possible_grasps);
-      visual_tools_->publishGrasps(possible_grasps, grasp_data_.ee_parent_link_);
+      //visual_tools_->publishGrasps(possible_grasps, grasp_data_.ee_parent_link_);
 
       possible_grasps.clear();
       ROS_INFO("Generating Box Grasps");
-      simple_grasps_->generateBoxGrasps(box, object_pose, grasp_data_, possible_grasps);
+      simple_grasps_->generateShapeGrasps(box, object_pose, grasp_data_, possible_grasps);
 
       // Visualize them
       //visual_tools_->publishAnimatedGrasps(possible_grasps, grasp_data_.ee_parent_link_);
@@ -158,10 +165,66 @@ public:
 
       // Test if done
       ++i;
-      if( i >= num_tests )
+      if( i >= num_tests_ )
         break;
     }
   }
+
+  void testCylinderGrasps()
+  {
+    // ---------------------------------------------------------------------------------------------
+    // Generate grasps for a bunch of random objects
+    geometry_msgs::Pose object_pose;
+    std::vector<moveit_msgs::Grasp> possible_grasps;
+
+    // Allow ROS to catchup
+    ros::Duration(2.0).sleep();
+
+    // Loop
+    int i = 0;
+    while(ros::ok())
+    {
+      ROS_INFO_STREAM_NAMED("test","Adding random object " << i+1 << " of " << num_tests_);
+
+      // Remove randomness when we are only running one test
+      if (num_tests_ == 1) {
+        generateTestObject(object_pose);
+        object_pose.position.x += 0.5;
+      } else {
+        generateRandomObject(object_pose);
+      }
+
+      visual_tools_->publishCylinder(object_pose, moveit_visual_tools::BLUE,
+              CYL_HEIGHT, CYL_RADIUS);
+
+      possible_grasps.clear();
+
+      // Generate set of grasps for one object
+      shape_msgs::SolidPrimitive cyl;
+      cyl.type = shape_msgs::SolidPrimitive::CYLINDER;
+      cyl.dimensions.resize(2);
+      cyl.dimensions[shape_msgs::SolidPrimitive::CYLINDER_RADIUS] = CYL_RADIUS;
+      cyl.dimensions[shape_msgs::SolidPrimitive::CYLINDER_HEIGHT] = CYL_HEIGHT;
+
+      //ROS_INFO("Grasps Block Grasps");
+      //simple_grasps_->generateBlockGrasps( object_pose, grasp_data_, possible_grasps);
+      //visual_tools_->publishGrasps(possible_grasps, grasp_data_.ee_parent_link_);
+
+      possible_grasps.clear();
+      ROS_INFO("Generating Cylinder Grasps");
+      simple_grasps_->generateShapeGrasps(cyl, object_pose, grasp_data_, possible_grasps);
+
+      // Visualize them
+      //visual_tools_->publishAnimatedGrasps(possible_grasps, grasp_data_.ee_parent_link_);
+      visual_tools_->publishGrasps(possible_grasps, grasp_data_.ee_parent_link_);
+
+      // Test if done
+      ++i;
+      if( i >= num_tests_ )
+        break;
+    }
+  }
+
 
   void generateTestObject(geometry_msgs::Pose& object_pose)
   {
@@ -204,7 +267,7 @@ public:
 
   double fRand(double fMin, double fMax)
   {
-    double f = (double)rand() / RAND_MAX;
+    double f = drand48();
     return fMin + f * (fMax - fMin);
   }
 
@@ -212,6 +275,30 @@ public:
 
 } // namespace
 
+// TODO setup tests for cylinder/etc.
+// Then: impl
+//
+// Then: see how to generalize everything (i.e. where to get/store pose to shape tfs etc)
+// Might be able to get from extends even when have mesh if we know the primitive
+// -> in a way they fit to these grasps
+// Can use that as offset already
+// Or external??? Because now they fit...
+// Or does it depend where we get the info from?
+// i.e. mesh + IS shape x -> extents from mesh/pcl/etc not from shape!
+// -> Then it gets interesting
+//
+// details: what should be parametrized for this node/for the action?
+// resolution steps or delta, hold offs, edge or not?, motions/postures/times
+// Or maybe if poss as overrides, i.e. params in here, but if set to reasonable in call use these?
+//
+// With DB conn really check what our full iface is in terms of input data
+// mesh/pcl + IS shape -> grasps that fit mesh?
+// maybe with wrapper in between to leave SimpleGrasps alone/simple.
+//
+// Later also edge grasps? for cups/bowls
+// Also bowl grasps at all...
+//
+// Really push later to later -> when iface stands: try to put in pick/place demo to generalize pick
 
 int main(int argc, char *argv[])
 {
@@ -224,13 +311,15 @@ int main(int argc, char *argv[])
   spinner.start();
 
   // Seed random
-  srand(ros::Time::now().toSec());
+  srand48(ros::Time::now().toSec());
 
   // Benchmark time
   ros::WallTime start_time = ros::WallTime::now();
 
   // Run Tests
   baxter_pick_place::GraspGeneratorTest tester(num_tests);
+  //tester.testBoxGrasps();
+  tester.testCylinderGrasps();
 
   // Benchmark time
   double duration = (ros::WallTime::now() - start_time).toSec() * 1e3;

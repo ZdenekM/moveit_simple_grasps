@@ -107,6 +107,8 @@ bool SimpleGrasps::generateShapeGrasps(const shape_msgs::SolidPrimitive & shape,
 {
     if(shape.type == shape_msgs::SolidPrimitive::BOX) {
         return generateBoxGrasps(shape, object_pose, grasp_data, possible_grasps);
+    } else if(shape.type == shape_msgs::SolidPrimitive::CYLINDER) {
+        return generateCylinderGrasps(shape, object_pose, grasp_data, possible_grasps);
     } else {
         ROS_ERROR("%s: Shape type %d not implemented.", __PRETTY_FUNCTION__, shape.type);
         return false;
@@ -234,6 +236,74 @@ bool SimpleGrasps::generateBoxGrasps(const shape_msgs::SolidPrimitive & shape, c
             addNewGrasp(grasp, grasp_pose, possible_grasps);
         }
     }
+    ROS_INFO_STREAM_NAMED("grasp", "Generated " << possible_grasps.size() << " grasps." );
+
+    return true;
+}
+
+bool SimpleGrasps::generateCylinderGrasps(const shape_msgs::SolidPrimitive & shape,
+        const geometry_msgs::Pose& object_pose,
+        const GraspData& grasp_data, std::vector<moveit_msgs::Grasp>& possible_grasps)
+{
+    // prepare transforms and grasp for this request
+    tf::poseMsgToEigen(object_pose, object_global_transform_);
+    tf::poseMsgToEigen(grasp_data.grasp_pose_to_eef_pose_, eef_conversion_pose_);
+    moveit_msgs::Grasp grasp;
+    initializeGrasp(grasp, grasp_data);
+
+    // these should be correct for a box
+    double wx, wy, wz;
+    shape_tools::getShapeExtents(shape, wx, wy, wz);
+    // shape origin should be in the center
+
+    const double cyl_edge_holdoff = 0.05;   // don't create grasps right at the edge/corner
+
+    // side grasps, wx/wy should be equal
+    if(wy <= grasp_data.pre_grasp_opening_) {
+        Eigen::Affine3d grasp_pose;
+        // sides up
+        for(int zstep = 0; zstep < grasp_data.linear_steps_; zstep++) {
+            double dz = - 0.5 * wz + cyl_edge_holdoff + 
+                zstep * (wz - 2 * cyl_edge_holdoff)/(grasp_data.linear_steps_ - 1);
+            double dz_quality = cos(M_PI_2 * dz/(0.5 * wz));  // the more centered in z the better
+            // side around
+            for(int ang_step = 0; ang_step < grasp_data.angle_steps_; ang_step++) {
+                // no -1 = won't end up at 2 pi = 0
+                double da = 2 * M_PI * static_cast<double>(ang_step)/grasp_data.angle_steps_;
+                double grasp_radius = 0.5 * wx - grasp_data.grasp_depth_;
+                // we grasp as deep as we can, but if we reach past the center of something round,
+                // prefer the center
+                if(grasp_radius < 0)
+                    grasp_radius = 0;
+                // grasp_radius > 0 is actually bad -> also wy test is too restrictive then
+                grasp.grasp_quality = exp(-grasp_radius/0.05) * dz_quality;
+                double dx = -grasp_radius * cos(da);
+                double dy = -grasp_radius * sin(da);
+
+                grasp_pose = Eigen::AngleAxisd(da, Eigen::Vector3d::UnitZ());
+                grasp_pose.translation() = Eigen::Vector3d(dx, dy, dz);
+                addNewGrasp(grasp, grasp_pose, possible_grasps);
+            }
+        }
+
+        // top
+        for(int ang_step = 0; ang_step < grasp_data.angle_steps_; ang_step++) {
+            // no -1 = won't end up at 2 pi = 0
+            double da = 2 * M_PI * static_cast<double>(ang_step)/grasp_data.angle_steps_;
+
+            double dx = 0.0;
+            double dy = 0.0;
+            double dz = 0.5 * wz - grasp_data.grasp_depth_;
+
+            grasp.grasp_quality = 0.5;
+
+            grasp_pose = Eigen::AngleAxisd(da, Eigen::Vector3d::UnitZ()) *
+                Eigen::AngleAxisd(M_PI_2, Eigen::Vector3d::UnitY());
+            grasp_pose.translation() = Eigen::Vector3d(dx, dy, dz);
+            addNewGrasp(grasp, grasp_pose, possible_grasps);
+        }
+    }
+
     ROS_INFO_STREAM_NAMED("grasp", "Generated " << possible_grasps.size() << " grasps." );
 
     return true;
