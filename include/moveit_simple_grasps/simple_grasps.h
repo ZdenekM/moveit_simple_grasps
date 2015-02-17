@@ -182,7 +182,7 @@ public:
     ROS_INFO_STREAM_NAMED("grasp","Base Link: " << data.base_link_);
     ROS_INFO_STREAM_NAMED("grasp","EE Parent Link: " << data.ee_parent_link_);
     ROS_INFO_STREAM_NAMED("grasp","Grasp Depth: " << data.grasp_depth_);
-    ROS_INFO_STREAM_NAMED("grasp","Angle Resolution: " << data.angle_resolution_);
+    ROS_INFO_STREAM_NAMED("grasp","Angle Steps: " << data.angle_steps_);
     ROS_INFO_STREAM_NAMED("grasp","Approach Retreat Desired Dist: " << data.approach_retreat_desired_dist_);
     ROS_INFO_STREAM_NAMED("grasp","Approach Retreat Min Dist: " << data.approach_retreat_min_dist_);
     ROS_INFO_STREAM_NAMED("grasp","Pregrasp Posture: \n" << data.pre_grasp_posture_);

@@ -54,7 +54,9 @@ GraspData::GraspData() :
   // Fill in default values where possible:
   base_link_("/base_link"),
   grasp_depth_(0.12),
-  angle_resolution_(16),
+  pre_grasp_opening_(0.2),
+  angle_steps_(16),
+  linear_steps_(16),
   approach_retreat_desired_dist_(0.6),
   approach_retreat_min_dist_(0.4),
   object_size_(0.04)
@@ -90,6 +92,7 @@ bool GraspData::loadRobotGraspData(const ros::NodeHandle& nh, const std::string&
     return false;
   }
   child_nh.getParam("pregrasp_time_from_start", pregrasp_time_from_start);
+  child_nh.getParam("pregrasp_opening", pre_grasp_opening_);
 
   // Load a param
   if (!child_nh.hasParam("grasp_time_from_start"))
@@ -252,7 +255,8 @@ bool GraspData::loadRobotGraspData(const ros::NodeHandle& nh, const std::string&
   grasp_depth_ = 0.06;// in negative or 0 this makes the grasps on the other side of the object! (like from below)
 
   // generate grasps at PI/angle_resolution increments
-  angle_resolution_ = 16; //TODO parametrize this, or move to action interface
+  angle_steps_ = 16; //TODO parametrize this, or move to action interface
+  linear_steps_ = 16;
 
   // Debug
   //moveit_simple_grasps::SimpleGrasps::printObjectGraspData(grasp_data);
@@ -265,12 +269,13 @@ void GraspData::print()
   ROS_WARN_STREAM_NAMED("grasp_data","Debug Grasp Data variable values:");
   std::cout << "grasp_pose_to_eef_pose_: \n" <<grasp_pose_to_eef_pose_<<std::endl;
   std::cout << "pre_grasp_posture_: \n" <<pre_grasp_posture_<<std::endl;
+  std::cout << "pre_grasp_opening: \n" << pre_grasp_opening_ << std::endl;
   std::cout << "grasp_posture_: \n" <<grasp_posture_<<std::endl;
   std::cout << "base_link_: " <<base_link_<<std::endl;
   std::cout << "ee_parent_link_: " <<ee_parent_link_<<std::endl;
   std::cout << "ee_group_: " <<ee_group_<<std::endl;
   std::cout << "grasp_depth_: " <<grasp_depth_<<std::endl;
-  std::cout << "angle_resolution_: " <<angle_resolution_<<std::endl;
+  std::cout << "angle_steps_: " <<angle_steps_<<std::endl;
   std::cout << "approach_retreat_desired_dist_: " <<approach_retreat_desired_dist_<<std::endl;
   std::cout << "approach_retreat_min_dist_: " <<approach_retreat_min_dist_<<std::endl;
   std::cout << "object_size_: " <<object_size_<<std::endl;

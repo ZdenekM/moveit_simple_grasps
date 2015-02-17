@@ -10,6 +10,7 @@ left_gripper:
     #open position
     pregrasp_posture : [0.545]
     pregrasp_time_from_start : 4.0  # TODO ???
+    pregrasp_opening: 0.2   # TODO actual value
 
     #close position
     grasp_posture : [0.0]
@@ -34,6 +35,7 @@ right_gripper:
     #open position
     pregrasp_posture : [0.545]
     pregrasp_time_from_start : 4.0
+    pregrasp_opening: 0.2
 
     #close position
     grasp_posture : [0.0]

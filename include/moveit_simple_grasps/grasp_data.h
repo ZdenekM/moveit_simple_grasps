@@ -60,7 +60,9 @@ public:
   std::string ee_parent_link_; // the last link in the kinematic chain before the end effector, e.g. "/gripper_roll_link"
   std::string ee_group_; // the end effector name
   double grasp_depth_; // distance from center point of object to end effector
-  int angle_resolution_; // generate grasps at PI/angle_resolution increments
+  double pre_grasp_opening_;    // how much the gripper reliably opens in pregrasp
+  int angle_steps_;         // generate angle_steps grasps
+  double linear_steps_;     // generate this many steps for linear discretizations
   double approach_retreat_desired_dist_; // how far back from the grasp position the pregrasp phase should be
   double approach_retreat_min_dist_; // how far back from the grasp position the pregrasp phase should be at minimum
   double object_size_; // for visualization

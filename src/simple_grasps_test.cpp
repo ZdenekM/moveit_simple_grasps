@@ -51,7 +51,7 @@
 namespace baxter_pick_place
 {
 
-static const double BLOCK_SIZE = 0.24;
+static const double BLOCK_SIZE = 0.15;
 
 class GraspGeneratorTest
 {
@@ -98,9 +98,10 @@ public:
     visual_tools_->loadMarkerPub();
     visual_tools_->setLifetime(120.0);
     visual_tools_->setMuted(false);
+    ros::Duration(2.0).sleep();
     visual_tools_->loadEEMarker(grasp_data_.ee_group_, planning_group_name_);
 
-    grasp_data_.grasp_depth_ = BLOCK_SIZE/2;
+    grasp_data_.grasp_depth_ = 0.05;
 
     // ---------------------------------------------------------------------------------------------
     // Load grasp generator
