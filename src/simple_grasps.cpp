@@ -148,7 +148,7 @@ bool SimpleGrasps::generateBoxGrasps(const shape_msgs::SolidPrimitive & shape, c
     // shape origin should be in the center
     const double box_edge_holdoff = 0.05;   // don't create grasps right at the edge/corner
 
-    // grasps on the x axis sides, along z
+    // grasps on the x axis sides
     if(wy <= grasp_data.pre_grasp_opening_) {
         Eigen::Affine3d grasp_pose;
         // sides up
@@ -192,6 +192,49 @@ bool SimpleGrasps::generateBoxGrasps(const shape_msgs::SolidPrimitive & shape, c
         }
     }
 
+    // grasps on the y axis sides
+    if(wx <= grasp_data.pre_grasp_opening_) {
+        Eigen::Affine3d grasp_pose;
+        // sides up
+        for(int zstep = 0; zstep < grasp_data.linear_steps_; zstep++) {
+            double dz = - 0.5 * wz + box_edge_holdoff + 
+                zstep * (wz - 2 * box_edge_holdoff)/(grasp_data.linear_steps_ - 1);
+            double dy = - 0.5 * wy + grasp_data.grasp_depth_;   // depth = how much from border in
+            double dx = 0.0;
+
+            grasp.grasp_quality = cos(M_PI_2 * dz/(0.5 * wz));  // the more centered in z the better
+
+            grasp_pose = Eigen::AngleAxisd(M_PI_2, Eigen::Vector3d::UnitZ());
+            grasp_pose.translation() = Eigen::Vector3d(dx, dy, dz);
+            addNewGrasp(grasp, grasp_pose, possible_grasps);
+
+            // opposing side
+            grasp_pose = Eigen::AngleAxisd(-M_PI_2, Eigen::Vector3d::UnitZ());
+            grasp_pose.translation() = Eigen::Vector3d(dx, -dy, dz);
+            addNewGrasp(grasp, grasp_pose, possible_grasps);
+        }
+        // top
+        for(int ystep = 0; ystep < grasp_data.linear_steps_; ystep++) {
+            double dz = 0.5 * wz - grasp_data.grasp_depth_;
+            double dx = 0.0;
+            double dy = - 0.5 * wy + box_edge_holdoff + 
+                ystep * (wy - 2 * box_edge_holdoff)/(grasp_data.linear_steps_ - 1);
+
+            // 0.5 to prefer side grasps
+            grasp.grasp_quality = 0.5 * cos(M_PI_2 * dy/(0.5 * wy));  // the more centered in x the better
+
+            grasp_pose = Eigen::AngleAxisd(M_PI_2, Eigen::Vector3d::UnitZ()) *
+                Eigen::AngleAxisd(M_PI_2, Eigen::Vector3d::UnitY());
+            grasp_pose.translation() = Eigen::Vector3d(dx, dy, dz);
+            addNewGrasp(grasp, grasp_pose, possible_grasps);
+
+            // opposing direction
+            grasp_pose = Eigen::AngleAxisd(-M_PI_2, Eigen::Vector3d::UnitZ()) *
+                Eigen::AngleAxisd(M_PI_2, Eigen::Vector3d::UnitY());
+            grasp_pose.translation() = Eigen::Vector3d(dx, dy, dz);
+            addNewGrasp(grasp, grasp_pose, possible_grasps);
+        }
+    }
     ROS_INFO_STREAM_NAMED("grasp", "Generated " << possible_grasps.size() << " grasps." );
 
     return true;
