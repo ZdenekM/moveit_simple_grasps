@@ -107,7 +107,8 @@ public:
 
     // ---------------------------------------------------------------------------------------------
     // Load grasp generator
-    simple_grasps_.reset( new moveit_simple_grasps::SimpleGrasps(visual_tools_) );
+    simple_grasps_.reset( new moveit_simple_grasps::SimpleGrasps());
+    //simple_grasps_.reset( new moveit_simple_grasps::SimpleGrasps(visual_tools_) );
 
     // ---------------------------------------------------------------------------------------------
     // Generate grasps for a bunch of random objects

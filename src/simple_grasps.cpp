@@ -39,9 +39,8 @@ namespace moveit_simple_grasps
 {
 
 // Constructor
-SimpleGrasps::SimpleGrasps(moveit_visual_tools::VisualToolsPtr visual_tools, bool verbose) :
-  visual_tools_(visual_tools),
-  verbose_(verbose)
+SimpleGrasps::SimpleGrasps(moveit_visual_tools::VisualToolsPtr visual_tools) :
+  visual_tools_(visual_tools)
 {
   ROS_DEBUG_STREAM_NAMED("grasps","Loaded simple grasp generator");
 }
@@ -118,7 +117,7 @@ void SimpleGrasps::addNewGrasp(moveit_msgs::Grasp & grasp, const Eigen::Affine3d
         std::vector<moveit_msgs::Grasp> & possible_grasps)
 {
     // DEBUG - show original grasp pose before tranform to gripper frame
-    if( verbose_ )
+    if(visual_tools_)
     {
         tf::poseEigenToMsg(object_global_transform_ * local_grasp_pose, grasp.grasp_pose.pose);
         visual_tools_->publishArrow(grasp.grasp_pose.pose, moveit_visual_tools::GREEN);
@@ -390,7 +389,7 @@ bool SimpleGrasps::generateAxisGrasps(
 
 
     // DEBUG - show original grasp pose before tranform to gripper frame
-    if( verbose_ )
+    if(visual_tools_)
     {
       tf::poseEigenToMsg(object_global_transform_ * grasp_pose, grasp_pose_msg.pose);
       visual_tools_->publishArrow(grasp_pose_msg.pose, moveit_visual_tools::GREEN);
