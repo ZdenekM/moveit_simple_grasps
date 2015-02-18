@@ -5,16 +5,16 @@ left_gripper:
     end_effector_name: 'left_gripper'  #ee group name FIXME: moveit group name, not eef name?!?
 
     #actuated joints in end effector    FIXME
-    joints : ['l_gripper_joint']
+    joints : ['l_gripper_motor_screw_joint']
 
     #open position
-    pregrasp_posture : [0.545]
-    pregrasp_time_from_start : 4.0  # TODO ???
+    pregrasp_posture : [1.0]
+    pregrasp_time_from_start : 45.0  # TODO ???
     pregrasp_opening: 0.2   # TODO actual value
 
     #close position
     grasp_posture : [0.0]
-    grasp_time_from_start : 4.0
+    grasp_time_from_start : 45.0
 
     #desired pose from end effector to grasp - [x,y,z]
     # TODO where is the eef here? At the groups parent link?
@@ -30,16 +30,17 @@ right_gripper:
     end_effector_name: 'right_gripper'  #ee group name
 
     #actuated joints in end effector
-    joints : ['r_gripper_joint']
+    #joints : ['r_gripper_joint']
+    joints : ['r_gripper_motor_screw_joint']
 
     #open position
-    pregrasp_posture : [0.545]
-    pregrasp_time_from_start : 4.0
+    pregrasp_posture : [1.0]
+    pregrasp_time_from_start : 45.0
     pregrasp_opening: 0.2
 
     #close position
     grasp_posture : [0.0]
-    grasp_time_from_start : 4.0
+    grasp_time_from_start : 45.0
 
     #desired pose from end effector to grasp - [x,y,z]
     grasp_pose_to_eef : [-0.18, 0, 0]

@@ -69,6 +69,7 @@ include_directories(
 add_library(${PROJECT_NAME}
   src/simple_grasps.cpp
   src/grasp_data.cpp
+  src/moveit_simple_grasps.cpp
 )
 target_link_libraries(${PROJECT_NAME} 
   ${catkin_LIBRARIES} ${Boost_LIBRARIES}

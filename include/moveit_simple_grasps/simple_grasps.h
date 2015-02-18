@@ -115,13 +115,13 @@ public:
   }
 
   /// Generate grasps for a primitive.
-  bool generateShapeGrasps(const shape_msgs::SolidPrimitive & shape, const geometry_msgs::Pose& object_pose,
+  bool generateShapeGrasps(const shape_msgs::SolidPrimitive & shape, const geometry_msgs::PoseStamped & object_pose,
           const GraspData& grasp_data, std::vector<moveit_msgs::Grasp>& possible_grasps);
 
-  bool generateBoxGrasps(const shape_msgs::SolidPrimitive & shape, const geometry_msgs::Pose& object_pose,
+  bool generateBoxGrasps(const shape_msgs::SolidPrimitive & shape, const geometry_msgs::PoseStamped & object_pose,
           const GraspData& grasp_data, std::vector<moveit_msgs::Grasp>& possible_grasps);
 
-  bool generateCylinderGrasps(const shape_msgs::SolidPrimitive & shape, const geometry_msgs::Pose& object_pose,
+  bool generateCylinderGrasps(const shape_msgs::SolidPrimitive & shape, const geometry_msgs::PoseStamped& object_pose,
           const GraspData& grasp_data, std::vector<moveit_msgs::Grasp>& possible_grasps);
 
   /**
@@ -189,7 +189,8 @@ protected:
   void fillGraspFromLocalGraspPose(const Eigen::Affine3d & local_grasp, moveit_msgs::Grasp & grasp);
 
   /// Initialize a grasp with common data from grasp_data.
-  void initializeGrasp(moveit_msgs::Grasp & grasp, const GraspData & grasp_data);
+  void initializeGrasp(moveit_msgs::Grasp & grasp, const GraspData & grasp_data,
+          const std_msgs::Header & grasp_header);
 
   void addNewGrasp(moveit_msgs::Grasp & grasp, const Eigen::Affine3d & local_grasp_pose,
           std::vector<moveit_msgs::Grasp> & possible_grasps);

@@ -119,7 +119,8 @@ public:
   {
     // ---------------------------------------------------------------------------------------------
     // Generate grasps for a bunch of random objects
-    geometry_msgs::Pose object_pose;
+    geometry_msgs::PoseStamped object_pose;
+    object_pose.header.frame_id = grasp_data_.base_link_;
     std::vector<moveit_msgs::Grasp> possible_grasps;
 
     // Allow ROS to catchup
@@ -133,12 +134,12 @@ public:
 
       // Remove randomness when we are only running one test
       if (num_tests_ == 1)
-        generateTestObject(object_pose);
+        generateTestObject(object_pose.pose);
       else
-        generateRandomObject(object_pose);
+        generateRandomObject(object_pose.pose);
 
       // Show the block
-      visual_tools_->publishBlock(object_pose, moveit_visual_tools::BLUE,
+      visual_tools_->publishBlock(object_pose.pose, moveit_visual_tools::BLUE,
               BLOCK_SIZE_X, BLOCK_SIZE_Y, BLOCK_SIZE_Z);
 
       possible_grasps.clear();
@@ -174,7 +175,8 @@ public:
   {
     // ---------------------------------------------------------------------------------------------
     // Generate grasps for a bunch of random objects
-    geometry_msgs::Pose object_pose;
+    geometry_msgs::PoseStamped object_pose;
+    object_pose.header.frame_id = grasp_data_.base_link_;
     std::vector<moveit_msgs::Grasp> possible_grasps;
 
     // Allow ROS to catchup
@@ -188,13 +190,13 @@ public:
 
       // Remove randomness when we are only running one test
       if (num_tests_ == 1) {
-        generateTestObject(object_pose);
-        object_pose.position.x += 0.5;
+        generateTestObject(object_pose.pose);
+        object_pose.pose.position.x += 0.5;
       } else {
-        generateRandomObject(object_pose);
+        generateRandomObject(object_pose.pose);
       }
 
-      visual_tools_->publishCylinder(object_pose, moveit_visual_tools::BLUE,
+      visual_tools_->publishCylinder(object_pose.pose, moveit_visual_tools::BLUE,
               CYL_HEIGHT, CYL_RADIUS);
 
       possible_grasps.clear();
@@ -275,25 +277,12 @@ public:
 
 } // namespace
 
-// TODO setup tests for cylinder/etc.
-// Then: impl
-//
-// Then: see how to generalize everything (i.e. where to get/store pose to shape tfs etc)
-// Might be able to get from extends even when have mesh if we know the primitive
-// -> in a way they fit to these grasps
-// Can use that as offset already
-// Or external??? Because now they fit...
-// Or does it depend where we get the info from?
-// i.e. mesh + IS shape x -> extents from mesh/pcl/etc not from shape!
-// -> Then it gets interesting
+// TODO
 //
 // details: what should be parametrized for this node/for the action?
 // resolution steps or delta, hold offs, edge or not?, motions/postures/times
 // Or maybe if poss as overrides, i.e. params in here, but if set to reasonable in call use these?
-//
-// With DB conn really check what our full iface is in terms of input data
-// mesh/pcl + IS shape -> grasps that fit mesh?
-// maybe with wrapper in between to leave SimpleGrasps alone/simple.
+// Also feasibility if depth > obj size?
 //
 // Later also edge grasps? for cups/bowls
 // Also bowl grasps at all...

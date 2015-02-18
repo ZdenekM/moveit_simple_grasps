@@ -61,14 +61,14 @@ void SimpleGrasps::fillGraspFromLocalGraspPose(const Eigen::Affine3d & local_gra
     tf::poseEigenToMsg(object_global_transform_ * grasp_pose, grasp.grasp_pose.pose);
 }
 
-void SimpleGrasps::initializeGrasp(moveit_msgs::Grasp & grasp, const GraspData & grasp_data)
+void SimpleGrasps::initializeGrasp(moveit_msgs::Grasp & grasp, const GraspData & grasp_data,
+        const std_msgs::Header & grasp_header)
 {
     // Postures
     grasp.pre_grasp_posture = grasp_data.pre_grasp_posture_;
     grasp.grasp_posture = grasp_data.grasp_posture_;
     // grasp_pose
-    grasp.grasp_pose.header.stamp = ros::Time::now();
-    grasp.grasp_pose.header.frame_id = grasp_data.base_link_;
+    grasp.grasp_pose.header = grasp_header;
 
     grasp.grasp_quality = 0.0;
 
@@ -102,7 +102,7 @@ void SimpleGrasps::initializeGrasp(moveit_msgs::Grasp & grasp, const GraspData &
 }
 
 bool SimpleGrasps::generateShapeGrasps(const shape_msgs::SolidPrimitive & shape,
-        const geometry_msgs::Pose& object_pose,
+        const geometry_msgs::PoseStamped & object_pose,
         const GraspData& grasp_data, std::vector<moveit_msgs::Grasp>& possible_grasps)
 {
     if(shape.type == shape_msgs::SolidPrimitive::BOX) {
@@ -134,14 +134,15 @@ void SimpleGrasps::addNewGrasp(moveit_msgs::Grasp & grasp, const Eigen::Affine3d
     possible_grasps.push_back(grasp);
 }
 
-bool SimpleGrasps::generateBoxGrasps(const shape_msgs::SolidPrimitive & shape, const geometry_msgs::Pose& object_pose,
+bool SimpleGrasps::generateBoxGrasps(const shape_msgs::SolidPrimitive & shape,
+        const geometry_msgs::PoseStamped & object_pose,
         const GraspData& grasp_data, std::vector<moveit_msgs::Grasp>& possible_grasps)
 {
     // prepare transforms and grasp for this request
-    tf::poseMsgToEigen(object_pose, object_global_transform_);
+    tf::poseMsgToEigen(object_pose.pose, object_global_transform_);
     tf::poseMsgToEigen(grasp_data.grasp_pose_to_eef_pose_, eef_conversion_pose_);
     moveit_msgs::Grasp grasp;
-    initializeGrasp(grasp, grasp_data);
+    initializeGrasp(grasp, grasp_data, object_pose.header);
 
     // these should be correct for a box
     double wx, wy, wz;
@@ -242,14 +243,14 @@ bool SimpleGrasps::generateBoxGrasps(const shape_msgs::SolidPrimitive & shape, c
 }
 
 bool SimpleGrasps::generateCylinderGrasps(const shape_msgs::SolidPrimitive & shape,
-        const geometry_msgs::Pose& object_pose,
+        const geometry_msgs::PoseStamped & object_pose,
         const GraspData& grasp_data, std::vector<moveit_msgs::Grasp>& possible_grasps)
 {
     // prepare transforms and grasp for this request
-    tf::poseMsgToEigen(object_pose, object_global_transform_);
+    tf::poseMsgToEigen(object_pose.pose, object_global_transform_);
     tf::poseMsgToEigen(grasp_data.grasp_pose_to_eef_pose_, eef_conversion_pose_);
     moveit_msgs::Grasp grasp;
-    initializeGrasp(grasp, grasp_data);
+    initializeGrasp(grasp, grasp_data, object_pose.header);
 
     // these should be correct for a box
     double wx, wy, wz;
@@ -271,12 +272,13 @@ bool SimpleGrasps::generateCylinderGrasps(const shape_msgs::SolidPrimitive & sha
                 // no -1 = won't end up at 2 pi = 0
                 double da = 2 * M_PI * static_cast<double>(ang_step)/grasp_data.angle_steps_;
                 double grasp_radius = 0.5 * wx - grasp_data.grasp_depth_;
+                const double over_center_max = 0.05;
                 // we grasp as deep as we can, but if we reach past the center of something round,
                 // prefer the center
-                if(grasp_radius < 0)
-                    grasp_radius = 0;
+                if(grasp_radius < -over_center_max)
+                    grasp_radius = -over_center_max;
                 // grasp_radius > 0 is actually bad -> also wy test is too restrictive then
-                grasp.grasp_quality = exp(-grasp_radius/0.05) * dz_quality;
+                grasp.grasp_quality = exp(-(grasp_radius + over_center_max)/0.05) * dz_quality;
                 double dx = -grasp_radius * cos(da);
                 double dy = -grasp_radius * sin(da);
 
