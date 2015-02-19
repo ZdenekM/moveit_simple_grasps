@@ -158,7 +158,7 @@ public:
 
       possible_grasps.clear();
       ROS_INFO("Generating Box Grasps");
-      simple_grasps_->generateShapeGrasps(box, object_pose, grasp_data_, possible_grasps);
+      simple_grasps_->generateShapeGrasps(box, true, false, object_pose, grasp_data_, possible_grasps);
 
       // Visualize them
       //visual_tools_->publishAnimatedGrasps(possible_grasps, grasp_data_.ee_parent_link_);
@@ -214,7 +214,7 @@ public:
 
       possible_grasps.clear();
       ROS_INFO("Generating Cylinder Grasps");
-      simple_grasps_->generateShapeGrasps(cyl, object_pose, grasp_data_, possible_grasps);
+      simple_grasps_->generateShapeGrasps(cyl, true, false, object_pose, grasp_data_, possible_grasps);
 
       // Visualize them
       //visual_tools_->publishAnimatedGrasps(possible_grasps, grasp_data_.ee_parent_link_);

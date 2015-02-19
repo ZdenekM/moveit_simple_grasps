@@ -102,13 +102,26 @@ void SimpleGrasps::initializeGrasp(moveit_msgs::Grasp & grasp, const GraspData &
 }
 
 bool SimpleGrasps::generateShapeGrasps(const shape_msgs::SolidPrimitive & shape,
+        bool enclosure, bool edge,
         const geometry_msgs::PoseStamped & object_pose,
         const GraspData& grasp_data, std::vector<moveit_msgs::Grasp>& possible_grasps)
 {
+    if(!enclosure && !edge) {
+        ROS_ERROR("%s: called with no enclosure or edge grasps requested.", __func__);
+        return false;
+    }
     if(shape.type == shape_msgs::SolidPrimitive::BOX) {
-        return generateBoxGrasps(shape, object_pose, grasp_data, possible_grasps);
+        bool generated = false;
+        if(enclosure)
+            generated |= generateBoxGrasps(shape, object_pose, grasp_data, possible_grasps);
+        // TODO edge
+        return generated;
     } else if(shape.type == shape_msgs::SolidPrimitive::CYLINDER) {
-        return generateCylinderGrasps(shape, object_pose, grasp_data, possible_grasps);
+        bool generated = false;
+        if(enclosure)
+            generated |= generateCylinderGrasps(shape, object_pose, grasp_data, possible_grasps);
+        // TODO edge
+        return generated;
     } else {
         ROS_ERROR("%s: Shape type %d not implemented.", __PRETTY_FUNCTION__, shape.type);
         return false;

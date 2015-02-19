@@ -115,7 +115,8 @@ public:
   }
 
   /// Generate grasps for a primitive.
-  bool generateShapeGrasps(const shape_msgs::SolidPrimitive & shape, const geometry_msgs::PoseStamped & object_pose,
+  bool generateShapeGrasps(const shape_msgs::SolidPrimitive & shape, bool enclosure, bool edge,
+          const geometry_msgs::PoseStamped & object_pose,
           const GraspData& grasp_data, std::vector<moveit_msgs::Grasp>& possible_grasps);
 
   bool generateBoxGrasps(const shape_msgs::SolidPrimitive & shape, const geometry_msgs::PoseStamped & object_pose,

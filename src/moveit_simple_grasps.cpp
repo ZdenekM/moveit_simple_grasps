@@ -11,8 +11,9 @@ MoveitSimpleGrasps::MoveitSimpleGrasps(moveit_visual_tools::VisualToolsPtr rviz_
 }
 
 
-bool MoveitSimpleGrasps::generateShapeGrasps(const moveit_msgs::CollisionObject & co, const GraspData & grasp_data,
-        const std::vector<unsigned char> & mesh_shape_types,
+bool MoveitSimpleGrasps::generateShapeGrasps(const moveit_msgs::CollisionObject & co, bool enclosure, bool edge,
+        const GraspData & grasp_data,
+        const std::vector<int> & mesh_shape_types,
         std::vector<moveit_msgs::Grasp> & possible_grasps)
 {
     bool generated_grasps = false;
@@ -22,8 +23,8 @@ bool MoveitSimpleGrasps::generateShapeGrasps(const moveit_msgs::CollisionObject 
         geometry_msgs::PoseStamped prim_pose;
         prim_pose.header = co.header;
         prim_pose.pose = co.primitive_poses[i];
-        generated_grasps |= simple_grasps_->generateShapeGrasps(co.primitives[i], prim_pose,
-                grasp_data, possible_grasps);
+        generated_grasps |= simple_grasps_->generateShapeGrasps(co.primitives[i], enclosure, edge,
+                prim_pose, grasp_data, possible_grasps);
     }
 
     ROS_ASSERT(co.meshes.size() == co.mesh_poses.size());
@@ -34,17 +35,23 @@ bool MoveitSimpleGrasps::generateShapeGrasps(const moveit_msgs::CollisionObject 
     }
 
     for(unsigned int i = 0; i < co.meshes.size(); ++i) {
+        if(mesh_shape_types[i] < 0) {
+            ROS_WARN("Could not generate grasps for mesh with type %d for object %s.",
+                    mesh_shape_types[i], co.id.c_str());
+            continue;
+        }
         shape_msgs::SolidPrimitive shape;
         geometry_msgs::PoseStamped shape_pose;
         shape_pose.header = co.header;
         if(!createPrimitiveFromMesh(co.meshes[i], co.mesh_poses[i], mesh_shape_types[i],
                     shape, shape_pose.pose)) {
-            ROS_WARN("Could not create primitive for mesh with type %d.", mesh_shape_types[i]);
+            ROS_WARN("Could not create primitive for mesh with type %d for object %s.",
+                    mesh_shape_types[i], co.id.c_str());
             continue;
         }
 
-        generated_grasps |= simple_grasps_->generateShapeGrasps(shape, shape_pose,
-                grasp_data, possible_grasps);
+        generated_grasps |= simple_grasps_->generateShapeGrasps(shape, enclosure, edge,
+                shape_pose, grasp_data, possible_grasps);
     }
 
     return generated_grasps;

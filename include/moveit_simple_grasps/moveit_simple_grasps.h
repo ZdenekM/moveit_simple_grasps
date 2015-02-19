@@ -7,21 +7,6 @@
 namespace moveit_simple_grasps
 {
 
-// TODO
-//
-// Then: see how to generalize everything (i.e. where to get/store pose to shape tfs etc)
-// Might be able to get from extends even when have mesh if we know the primitive
-// -> in a way they fit to these grasps
-// Can use that as offset already
-// Or external??? Because now they fit...
-// Or does it depend where we get the info from?
-// i.e. mesh + IS shape x -> extents from mesh/pcl/etc not from shape!
-// -> Then it gets interesting
-//
-// With DB conn really check what our full iface is in terms of input data
-// mesh/pcl + IS shape -> grasps that fit mesh?
-// maybe with wrapper in between to leave SimpleGrasps alone/simple.
-
 /// Generate Simple Grasps for moveit CollisionObjects.
 class MoveitSimpleGrasps
 {
@@ -38,9 +23,11 @@ class MoveitSimpleGrasps
          * is an axis aligned bounding box, a cylinder stands up right, etc.
          *
          * \param [in] mesh_shape_types shape types for each mesh according to shape_msgs/SolidPrimitive
+         *                              or grasp_provider_msgs/GraspProvider
          */
-        bool generateShapeGrasps(const moveit_msgs::CollisionObject & co, const GraspData & grasp_data,
-                const std::vector<unsigned char> & mesh_shape_types,
+        bool generateShapeGrasps(const moveit_msgs::CollisionObject & co, bool enclosure, bool edge,
+                const GraspData & grasp_data,
+                const std::vector<int> & mesh_shape_types,
                 std::vector<moveit_msgs::Grasp> & possible_grasps);
 
     protected:
