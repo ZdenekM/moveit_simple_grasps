@@ -278,14 +278,16 @@ bool SimpleGrasps::generateCylinderGrasps(const shape_msgs::SolidPrimitive & sha
             // side around
             for(double da = 0.0; da < 2 * M_PI; da += grasp_data.angular_discretization_) {
                 double grasp_radius = 0.5 * wx - grasp_data.grasp_depth_;
-                const double over_center_max = 0.05;
+                const double over_center_max = 0.015;
                 // we grasp as deep as we can, but if we reach past the center of something round,
                 // prefer the center
                 if(grasp_radius < -over_center_max)
                     grasp_radius = -over_center_max;
                 // grasp_radius > 0 is actually bad -> also wy test is too restrictive then
-                grasp.grasp_quality = exp(-(grasp_radius + over_center_max)/0.05) * dz_quality;
-                ROS_INFO_THROTTLE(0.1, "grasp_quality: %f rad: %f oc: %f dz_quality: %f", grasp.grasp_quality,
+                grasp.grasp_quality = exp(-(grasp_radius + over_center_max)/0.03) * dz_quality;
+                // TODO when allowing non-full opening also rethink this
+                // -> 0.03 also depends on diameter, the angle of the surfaces is relevant
+                ROS_INFO("grasp_quality: %f rad: %f oc: %f dz_quality: %f", grasp.grasp_quality,
                         grasp_radius, over_center_max, dz_quality);
                 double dx = -grasp_radius * cos(da);
                 double dy = -grasp_radius * sin(da);

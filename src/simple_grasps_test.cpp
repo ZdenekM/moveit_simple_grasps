@@ -107,8 +107,6 @@ public:
     ros::Duration(2.0).sleep();
     visual_tools_->loadEEMarker(grasp_data_.ee_group_, planning_group_name_);
 
-    grasp_data_.grasp_depth_ = 0.05;
-
     // ---------------------------------------------------------------------------------------------
     // Load grasp generator
     simple_grasps_.reset( new moveit_simple_grasps::SimpleGrasps());
@@ -307,8 +305,8 @@ int main(int argc, char *argv[])
 
   // Run Tests
   baxter_pick_place::GraspGeneratorTest tester(num_tests);
-  tester.testBoxGrasps();
-  //tester.testCylinderGrasps();
+  //tester.testBoxGrasps();
+  tester.testCylinderGrasps();
 
   // Benchmark time
   double duration = (ros::WallTime::now() - start_time).toSec() * 1e3;
