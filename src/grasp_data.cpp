@@ -50,17 +50,20 @@
 
 namespace moveit_simple_grasps
 {
+
 GraspData::GraspData() :
   // Fill in default values where possible:
   base_link_("/base_link"),
   grasp_depth_(0.12),
   pre_grasp_opening_(0.2),
-  angle_steps_(16),
-  linear_steps_(16),
+  linear_discretization_(0.02),
+  angular_discretization_(0.5),
+  edge_holdoff_(0.05),
   approach_retreat_desired_dist_(0.6),
   approach_retreat_min_dist_(0.4),
   object_size_(0.04)
-{}
+{
+}
 
 bool GraspData::loadRobotGraspData(const ros::NodeHandle& nh, const std::string& end_effector)
 {
@@ -82,6 +85,10 @@ bool GraspData::loadRobotGraspData(const ros::NodeHandle& nh, const std::string&
   }
   nh.getParam("base_link", base_link_);
 
+  nh.getParam("edge_holdoff", edge_holdoff_);
+  nh.getParam("linear_discretization", linear_discretization_);
+  nh.getParam("angular_discretization", angular_discretization_);
+
   // Search within the sub-namespace of this end effector name
   ros::NodeHandle child_nh(nh, end_effector);
 
@@ -93,6 +100,10 @@ bool GraspData::loadRobotGraspData(const ros::NodeHandle& nh, const std::string&
   }
   child_nh.getParam("pregrasp_time_from_start", pregrasp_time_from_start);
   child_nh.getParam("pregrasp_opening", pre_grasp_opening_);
+  child_nh.getParam("grasp_depth", grasp_depth_);
+
+  child_nh.getParam("approach_retreat_desired_dist", approach_retreat_desired_dist_);
+  child_nh.getParam("approach_retreat_min_dist", approach_retreat_min_dist_);
 
   // Load a param
   if (!child_nh.hasParam("grasp_time_from_start"))
@@ -251,15 +262,6 @@ bool GraspData::loadRobotGraspData(const ros::NodeHandle& nh, const std::string&
   // Nums
   approach_retreat_desired_dist_ = 0.2; // 0.3;
   approach_retreat_min_dist_ = 0.06;
-  // distance from center point of object to end effector
-  grasp_depth_ = 0.06;// in negative or 0 this makes the grasps on the other side of the object! (like from below)
-
-  // generate grasps at PI/angle_resolution increments
-  angle_steps_ = 16; //TODO parametrize this, or move to action interface
-  linear_steps_ = 16;
-
-  // Debug
-  //moveit_simple_grasps::SimpleGrasps::printObjectGraspData(grasp_data);
 
   return true;
 }
@@ -275,7 +277,9 @@ void GraspData::print()
   std::cout << "ee_parent_link_: " <<ee_parent_link_<<std::endl;
   std::cout << "ee_group_: " <<ee_group_<<std::endl;
   std::cout << "grasp_depth_: " <<grasp_depth_<<std::endl;
-  std::cout << "angle_steps_: " <<angle_steps_<<std::endl;
+  std::cout << "edge_holdoff: " << edge_holdoff_ << std::endl;
+  std::cout << "linear_discretization: " << linear_discretization_ << std::endl;
+  std::cout << "angular_discretization: " <<angular_discretization_<<std::endl;
   std::cout << "approach_retreat_desired_dist_: " <<approach_retreat_desired_dist_<<std::endl;
   std::cout << "approach_retreat_min_dist_: " <<approach_retreat_min_dist_<<std::endl;
   std::cout << "object_size_: " <<object_size_<<std::endl;

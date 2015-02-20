@@ -51,11 +51,11 @@
 namespace baxter_pick_place
 {
 
-static const double BLOCK_SIZE_X = 0.15;
-static const double BLOCK_SIZE_Y = 0.35;
-static const double BLOCK_SIZE_Z = 0.40;
+static const double BLOCK_SIZE_X = 0.08;
+static const double BLOCK_SIZE_Y = 0.25;
+static const double BLOCK_SIZE_Z = 0.30;
 
-static const double CYL_RADIUS = 0.05;
+static const double CYL_RADIUS = 0.04;
 static const double CYL_HEIGHT = 0.11;
 
 class GraspGeneratorTest
@@ -307,8 +307,8 @@ int main(int argc, char *argv[])
 
   // Run Tests
   baxter_pick_place::GraspGeneratorTest tester(num_tests);
-  //tester.testBoxGrasps();
-  tester.testCylinderGrasps();
+  tester.testBoxGrasps();
+  //tester.testCylinderGrasps();
 
   // Benchmark time
   double duration = (ros::WallTime::now() - start_time).toSec() * 1e3;

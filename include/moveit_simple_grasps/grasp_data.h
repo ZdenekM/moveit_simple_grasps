@@ -61,10 +61,15 @@ public:
   std::string ee_group_; // the end effector name
   double grasp_depth_; // distance from center point of object to end effector
   double pre_grasp_opening_;    // how much the gripper reliably opens in pregrasp
-  int angle_steps_;         // generate angle_steps grasps
-  double linear_steps_;     // generate this many steps for linear discretizations
+
+  double linear_discretization_;     // generate this many steps for linear discretizations
+  double angular_discretization_;         // generate angles
+
+  double edge_holdoff_; // distance from edges
+
   double approach_retreat_desired_dist_; // how far back from the grasp position the pregrasp phase should be
   double approach_retreat_min_dist_; // how far back from the grasp position the pregrasp phase should be at minimum
+
   double object_size_; // for visualization
 
 public:

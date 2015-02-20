@@ -1,5 +1,12 @@
 base_link: 'base_footprint'
 
+# discretization to search for grasps
+linear_discretization: 0.01
+angular_discretization: 0.39269908169872415480  # 22.5 deg/16 steps in 360 deg
+
+# dont produce grasps too near to an object's edge
+edge_holdoff: 0.02
+
 # =====================================================
 left_gripper:
     end_effector_name: 'left_gripper'  #ee group name FIXME: moveit group name, not eef name?!?
@@ -9,12 +16,12 @@ left_gripper:
 
     #open position
     pregrasp_posture : [1.0]
-    pregrasp_time_from_start : 45.0  # TODO ???
-    pregrasp_opening: 0.2   # TODO actual value
+    pregrasp_time_from_start : 25.0  # TODO ???
+    pregrasp_opening: 0.085   # TODO actual value
 
     #close position
     grasp_posture : [0.0]
-    grasp_time_from_start : 45.0
+    grasp_time_from_start : 25.0
 
     #desired pose from end effector to grasp - [x,y,z]
     # TODO where is the eef here? At the groups parent link?
@@ -25,6 +32,12 @@ left_gripper:
     grasp_pose_to_eef_rotation : [0, 0, 0]
 
     end_effector_parent_link: 'l_wrist_roll_link'
+
+    # how deep can the grasp pose go into an object
+    grasp_depth: 0.06
+    approach_retreat_desired_dist: 0.2
+    approach_retreat_min_dist: 0.06
+
 # =====================================================
 right_gripper:
     end_effector_name: 'right_gripper'  #ee group name
@@ -35,12 +48,12 @@ right_gripper:
 
     #open position
     pregrasp_posture : [1.0]
-    pregrasp_time_from_start : 45.0
-    pregrasp_opening: 0.2
+    pregrasp_time_from_start : 25.0
+    pregrasp_opening: 0.085
 
     #close position
     grasp_posture : [0.0]
-    grasp_time_from_start : 45.0
+    grasp_time_from_start : 25.0
 
     #desired pose from end effector to grasp - [x,y,z]
     grasp_pose_to_eef : [-0.18, 0, 0]
@@ -50,3 +63,6 @@ right_gripper:
 
     end_effector_parent_link: 'r_wrist_roll_link'
 
+    grasp_depth: 0.06
+    approach_retreat_desired_dist: 0.2
+    approach_retreat_min_dist: 0.06

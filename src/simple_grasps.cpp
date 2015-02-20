@@ -161,15 +161,14 @@ bool SimpleGrasps::generateBoxGrasps(const shape_msgs::SolidPrimitive & shape,
     double wx, wy, wz;
     shape_tools::getShapeExtents(shape, wx, wy, wz);
     // shape origin should be in the center
-    const double box_edge_holdoff = 0.05;   // don't create grasps right at the edge/corner
+    const double box_edge_holdoff = grasp_data.edge_holdoff_;   // don't create grasps right at the edge/corner
 
     // grasps on the x axis sides
     if(wy <= grasp_data.pre_grasp_opening_) {
         Eigen::Affine3d grasp_pose;
         // sides up
-        for(int zstep = 0; zstep < grasp_data.linear_steps_; zstep++) {
-            double dz = - 0.5 * wz + box_edge_holdoff + 
-                zstep * (wz - 2 * box_edge_holdoff)/(grasp_data.linear_steps_ - 1);
+        for(double dz = -0.5 * wz + box_edge_holdoff; dz <= 0.5 * wz - box_edge_holdoff;
+                dz += grasp_data.linear_discretization_) {
             double dx = - 0.5 * wx + grasp_data.grasp_depth_;   // depth = how much from border in
             double dy = 0.0;
 
@@ -185,11 +184,10 @@ bool SimpleGrasps::generateBoxGrasps(const shape_msgs::SolidPrimitive & shape,
             addNewGrasp(grasp, grasp_pose, possible_grasps);
         }
         // top
-        for(int xstep = 0; xstep < grasp_data.linear_steps_; xstep++) {
+        for(double dx = -0.5 * wx + box_edge_holdoff; dx <= 0.5 * wx - box_edge_holdoff;
+                dx += grasp_data.linear_discretization_) {
             double dz = 0.5 * wz - grasp_data.grasp_depth_;
             double dy = 0.0;
-            double dx = - 0.5 * wx + box_edge_holdoff + 
-                xstep * (wx - 2 * box_edge_holdoff)/(grasp_data.linear_steps_ - 1);
 
             // 0.5 to prefer side grasps
             grasp.grasp_quality = 0.5 * cos(M_PI_2 * dx/(0.5 * wx));  // the more centered in x the better
@@ -211,9 +209,8 @@ bool SimpleGrasps::generateBoxGrasps(const shape_msgs::SolidPrimitive & shape,
     if(wx <= grasp_data.pre_grasp_opening_) {
         Eigen::Affine3d grasp_pose;
         // sides up
-        for(int zstep = 0; zstep < grasp_data.linear_steps_; zstep++) {
-            double dz = - 0.5 * wz + box_edge_holdoff + 
-                zstep * (wz - 2 * box_edge_holdoff)/(grasp_data.linear_steps_ - 1);
+        for(double dz = -0.5 * wz + box_edge_holdoff; dz <= 0.5 * wz - box_edge_holdoff;
+                dz += grasp_data.linear_discretization_) {
             double dy = - 0.5 * wy + grasp_data.grasp_depth_;   // depth = how much from border in
             double dx = 0.0;
 
@@ -229,11 +226,10 @@ bool SimpleGrasps::generateBoxGrasps(const shape_msgs::SolidPrimitive & shape,
             addNewGrasp(grasp, grasp_pose, possible_grasps);
         }
         // top
-        for(int ystep = 0; ystep < grasp_data.linear_steps_; ystep++) {
+        for(double dy = -0.5 * wy + box_edge_holdoff; dy <= 0.5 * wy - box_edge_holdoff;
+                dy += grasp_data.linear_discretization_) {
             double dz = 0.5 * wz - grasp_data.grasp_depth_;
             double dx = 0.0;
-            double dy = - 0.5 * wy + box_edge_holdoff + 
-                ystep * (wy - 2 * box_edge_holdoff)/(grasp_data.linear_steps_ - 1);
 
             // 0.5 to prefer side grasps
             grasp.grasp_quality = 0.5 * cos(M_PI_2 * dy/(0.5 * wy));  // the more centered in x the better
@@ -270,20 +266,17 @@ bool SimpleGrasps::generateCylinderGrasps(const shape_msgs::SolidPrimitive & sha
     shape_tools::getShapeExtents(shape, wx, wy, wz);
     // shape origin should be in the center
 
-    const double cyl_edge_holdoff = 0.05;   // don't create grasps right at the edge/corner
+    const double cyl_edge_holdoff = grasp_data.edge_holdoff_;   // don't create grasps right at the edge/corner
 
     // side grasps, wx/wy should be equal
     if(wy <= grasp_data.pre_grasp_opening_) {
         Eigen::Affine3d grasp_pose;
         // sides up
-        for(int zstep = 0; zstep < grasp_data.linear_steps_; zstep++) {
-            double dz = - 0.5 * wz + cyl_edge_holdoff + 
-                zstep * (wz - 2 * cyl_edge_holdoff)/(grasp_data.linear_steps_ - 1);
+        for(double dz = -0.5 * wz + cyl_edge_holdoff; dz <= 0.5 * wz - cyl_edge_holdoff;
+                dz += grasp_data.linear_discretization_) {
             double dz_quality = cos(M_PI_2 * dz/(0.5 * wz));  // the more centered in z the better
             // side around
-            for(int ang_step = 0; ang_step < grasp_data.angle_steps_; ang_step++) {
-                // no -1 = won't end up at 2 pi = 0
-                double da = 2 * M_PI * static_cast<double>(ang_step)/grasp_data.angle_steps_;
+            for(double da = 0.0; da < 2 * M_PI; da += grasp_data.angular_discretization_) {
                 double grasp_radius = 0.5 * wx - grasp_data.grasp_depth_;
                 const double over_center_max = 0.05;
                 // we grasp as deep as we can, but if we reach past the center of something round,
@@ -292,6 +285,8 @@ bool SimpleGrasps::generateCylinderGrasps(const shape_msgs::SolidPrimitive & sha
                     grasp_radius = -over_center_max;
                 // grasp_radius > 0 is actually bad -> also wy test is too restrictive then
                 grasp.grasp_quality = exp(-(grasp_radius + over_center_max)/0.05) * dz_quality;
+                ROS_INFO_THROTTLE(0.1, "grasp_quality: %f rad: %f oc: %f dz_quality: %f", grasp.grasp_quality,
+                        grasp_radius, over_center_max, dz_quality);
                 double dx = -grasp_radius * cos(da);
                 double dy = -grasp_radius * sin(da);
 
@@ -302,10 +297,7 @@ bool SimpleGrasps::generateCylinderGrasps(const shape_msgs::SolidPrimitive & sha
         }
 
         // top
-        for(int ang_step = 0; ang_step < grasp_data.angle_steps_; ang_step++) {
-            // no -1 = won't end up at 2 pi = 0
-            double da = 2 * M_PI * static_cast<double>(ang_step)/grasp_data.angle_steps_;
-
+        for(double da = 0.0; da < 2 * M_PI; da += grasp_data.angular_discretization_) {
             double dx = 0.0;
             double dy = 0.0;
             double dz = 0.5 * wz - grasp_data.grasp_depth_;
@@ -406,7 +398,7 @@ bool SimpleGrasps::generateAxisGrasps(
    * Create angles 180 degrees around the chosen axis at given resolution
    * We create the grasps in the reference frame of the object, then later convert it to the base link
    */
-  for(int i = 0; i <= grasp_data.angle_steps_; ++i)
+  for(int i = 0; i <= 16; ++i)
   {
     // Create a Grasp message
     moveit_msgs::Grasp new_grasp;
@@ -451,10 +443,10 @@ bool SimpleGrasps::generateAxisGrasps(
 
     // Calculate the theta1 for next time
     if (rotation == HALF)
-      theta1 += M_PI / grasp_data.angle_steps_;
+      theta1 += M_PI / 16;
     else
     {
-      theta1 += 2*M_PI / grasp_data.angle_steps_;
+      theta1 += 2*M_PI / 16;
     }
 
     // A name for this grasp

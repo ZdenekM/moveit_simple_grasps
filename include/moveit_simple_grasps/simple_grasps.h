@@ -166,6 +166,7 @@ public:
    */
   static geometry_msgs::PoseStamped getPreGraspPose(const moveit_msgs::Grasp &grasp, const std::string &ee_parent_link);
 
+#if 0
   /**
    * \brief Print debug info
    * DEPRECATRED: moved to grasp_data.cpp
@@ -183,6 +184,7 @@ public:
     ROS_INFO_STREAM_NAMED("grasp","Grasp Posture: \n" << data.grasp_posture_);
     ROS_INFO_STREAM_NAMED("grasp","---------------------------------------------------\n");
   }
+#endif
 
 protected:
 
