@@ -55,7 +55,7 @@ static const double BLOCK_SIZE_X = 0.08;
 static const double BLOCK_SIZE_Y = 0.25;
 static const double BLOCK_SIZE_Z = 0.30;
 
-static const double CYL_RADIUS = 0.04;
+static const double CYL_RADIUS = 0.14;
 static const double CYL_HEIGHT = 0.11;
 
 class GraspGeneratorTest
@@ -212,7 +212,7 @@ public:
 
       possible_grasps.clear();
       ROS_INFO("Generating Cylinder Grasps");
-      simple_grasps_->generateShapeGrasps(cyl, true, false, object_pose, grasp_data_, possible_grasps);
+      simple_grasps_->generateShapeGrasps(cyl, false, true, object_pose, grasp_data_, possible_grasps);
 
       // Visualize them
       //visual_tools_->publishAnimatedGrasps(possible_grasps, grasp_data_.ee_parent_link_);
@@ -274,18 +274,6 @@ public:
 }; // end of class
 
 } // namespace
-
-// TODO
-//
-// details: what should be parametrized for this node/for the action?
-// resolution steps or delta, hold offs, edge or not?, motions/postures/times
-// Or maybe if poss as overrides, i.e. params in here, but if set to reasonable in call use these?
-// Also feasibility if depth > obj size?
-//
-// Later also edge grasps? for cups/bowls
-// Also bowl grasps at all...
-//
-// Really push later to later -> when iface stands: try to put in pick/place demo to generalize pick
 
 int main(int argc, char *argv[])
 {
