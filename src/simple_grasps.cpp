@@ -259,7 +259,84 @@ bool SimpleGrasps::generateBoxEdgeGrasps(const shape_msgs::SolidPrimitive & shap
         const geometry_msgs::PoseStamped & object_pose,
         const GraspData& grasp_data, std::vector<moveit_msgs::Grasp>& possible_grasps)
 {
+    size_t sizeBefore = possible_grasps.size();
 
+    // prepare transforms and grasp for this request
+    tf::poseMsgToEigen(object_pose.pose, object_global_transform_);
+    tf::poseMsgToEigen(grasp_data.grasp_pose_to_eef_pose_, eef_conversion_pose_);
+    moveit_msgs::Grasp grasp;
+    initializeGrasp(grasp, grasp_data, object_pose.header);
+
+    // these should be correct for a box
+    double wx, wy, wz;
+    shape_tools::getShapeExtents(shape, wx, wy, wz);
+    // shape origin should be in the center
+    const double box_edge_holdoff = grasp_data.edge_holdoff_;   // don't create grasps right at the edge/corner
+
+    // grasps on the x axis sides
+    if(wy > 0.5 * grasp_data.pre_grasp_opening_ + 0.03) {
+        Eigen::Affine3d grasp_pose;
+        // top
+        for(double dx = -0.5 * wx + box_edge_holdoff; dx <= 0.5 * wx - box_edge_holdoff;
+                dx += grasp_data.linear_discretization_) {
+            double dz = 0.5 * wz - grasp_data.grasp_depth_;
+            double dy = 0.5 * wy;
+
+            // 0.5 to prefer enclosure grasps
+            grasp.grasp_quality = 0.5 * cos(M_PI_2 * dx/(0.5 * wx));  // the more centered in x the better
+
+            grasp_pose = Eigen::AngleAxisd(0.0, Eigen::Vector3d::UnitZ()) *
+                Eigen::AngleAxisd(M_PI_2, Eigen::Vector3d::UnitY());
+            grasp_pose.translation() = Eigen::Vector3d(dx, dy, dz);
+            addNewGrasp(grasp, grasp_pose, possible_grasps);
+            // other side
+            grasp_pose.translation() = Eigen::Vector3d(dx, -dy, dz);
+            addNewGrasp(grasp, grasp_pose, possible_grasps);
+
+            // opposing orientation 
+            grasp_pose = Eigen::AngleAxisd(M_PI, Eigen::Vector3d::UnitZ()) *
+                Eigen::AngleAxisd(M_PI_2, Eigen::Vector3d::UnitY());
+            grasp_pose.translation() = Eigen::Vector3d(dx, dy, dz);
+            addNewGrasp(grasp, grasp_pose, possible_grasps);
+            // other side
+            grasp_pose.translation() = Eigen::Vector3d(dx, -dy, dz);
+            addNewGrasp(grasp, grasp_pose, possible_grasps);
+        }
+    }
+
+    // grasps on the y axis sides
+    if(wx > 0.5 * grasp_data.pre_grasp_opening_ + 0.03) {
+        Eigen::Affine3d grasp_pose;
+        // top
+        for(double dy = -0.5 * wy + box_edge_holdoff; dy <= 0.5 * wy - box_edge_holdoff;
+                dy += grasp_data.linear_discretization_) {
+            double dz = 0.5 * wz - grasp_data.grasp_depth_;
+            double dx = 0.5 * wx;
+
+            // 0.5 to prefer enclosure grasps
+            grasp.grasp_quality = 0.5 * cos(M_PI_2 * dy/(0.5 * wy));  // the more centered in x the better
+
+            grasp_pose = Eigen::AngleAxisd(M_PI_2, Eigen::Vector3d::UnitZ()) *
+                Eigen::AngleAxisd(M_PI_2, Eigen::Vector3d::UnitY());
+            grasp_pose.translation() = Eigen::Vector3d(dx, dy, dz);
+            addNewGrasp(grasp, grasp_pose, possible_grasps);
+            // other side
+            grasp_pose.translation() = Eigen::Vector3d(-dx, dy, dz);
+            addNewGrasp(grasp, grasp_pose, possible_grasps);
+
+            // opposing direction
+            grasp_pose = Eigen::AngleAxisd(-M_PI_2, Eigen::Vector3d::UnitZ()) *
+                Eigen::AngleAxisd(M_PI_2, Eigen::Vector3d::UnitY());
+            grasp_pose.translation() = Eigen::Vector3d(dx, dy, dz);
+            addNewGrasp(grasp, grasp_pose, possible_grasps);
+            // other side
+            grasp_pose.translation() = Eigen::Vector3d(-dx, dy, dz);
+            addNewGrasp(grasp, grasp_pose, possible_grasps);
+        }
+    }
+    ROS_INFO_STREAM_NAMED("grasp", "Generated " << possible_grasps.size() << " grasps." );
+
+    return possible_grasps.size() > sizeBefore;
 }
 
 bool SimpleGrasps::generateCylinderGrasps(const shape_msgs::SolidPrimitive & shape,
@@ -349,25 +426,27 @@ bool SimpleGrasps::generateCylinderEdgeGrasps(const shape_msgs::SolidPrimitive &
     // shape origin should be in the center
     // wx/wy should be equal
 
-    Eigen::Affine3d grasp_pose;
-    // around the top
-    for(double da = 0.0; da < 2 * M_PI; da += grasp_data.angular_discretization_) {
-        double dx = 0.5 * wx * cos(da);
-        double dy = 0.5 * wx * sin(da);
-        double dz = 0.5 * wz - grasp_data.grasp_depth_;
+    if(wx > 0.5 * grasp_data.pre_grasp_opening_ + 0.03) {   // gripper must fit inside
+        Eigen::Affine3d grasp_pose;
+        // around the top
+        for(double da = 0.0; da < 2 * M_PI; da += grasp_data.angular_discretization_) {
+            double dx = 0.5 * wx * cos(da);
+            double dy = 0.5 * wx * sin(da);
+            double dz = 0.5 * wz - grasp_data.grasp_depth_;
 
-        grasp.grasp_quality = 0.7;
+            grasp.grasp_quality = 0.7;
 
-        grasp_pose = Eigen::AngleAxisd(da + M_PI_2, Eigen::Vector3d::UnitZ()) *
-            Eigen::AngleAxisd(M_PI_2, Eigen::Vector3d::UnitY());
-        grasp_pose.translation() = Eigen::Vector3d(dx, dy, dz);
-        addNewGrasp(grasp, grasp_pose, possible_grasps);
+            grasp_pose = Eigen::AngleAxisd(da + M_PI_2, Eigen::Vector3d::UnitZ()) *
+                Eigen::AngleAxisd(M_PI_2, Eigen::Vector3d::UnitY());
+            grasp_pose.translation() = Eigen::Vector3d(dx, dy, dz);
+            addNewGrasp(grasp, grasp_pose, possible_grasps);
 
-        // two orientations for an edge
-        grasp_pose = Eigen::AngleAxisd(da - M_PI_2, Eigen::Vector3d::UnitZ()) *
-            Eigen::AngleAxisd(M_PI_2, Eigen::Vector3d::UnitY());
-        grasp_pose.translation() = Eigen::Vector3d(dx, dy, dz);
-        addNewGrasp(grasp, grasp_pose, possible_grasps);
+            // two orientations for an edge
+            grasp_pose = Eigen::AngleAxisd(da - M_PI_2, Eigen::Vector3d::UnitZ()) *
+                Eigen::AngleAxisd(M_PI_2, Eigen::Vector3d::UnitY());
+            grasp_pose.translation() = Eigen::Vector3d(dx, dy, dz);
+            addNewGrasp(grasp, grasp_pose, possible_grasps);
+        }
     }
 
     ROS_INFO_STREAM_NAMED("grasp", "Generated " << possible_grasps.size() << " grasps." );

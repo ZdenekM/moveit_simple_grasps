@@ -156,7 +156,7 @@ public:
 
       possible_grasps.clear();
       ROS_INFO("Generating Box Grasps");
-      simple_grasps_->generateShapeGrasps(box, true, false, object_pose, grasp_data_, possible_grasps);
+      simple_grasps_->generateShapeGrasps(box, false, true, object_pose, grasp_data_, possible_grasps);
 
       // Visualize them
       //visual_tools_->publishAnimatedGrasps(possible_grasps, grasp_data_.ee_parent_link_);
@@ -293,8 +293,8 @@ int main(int argc, char *argv[])
 
   // Run Tests
   baxter_pick_place::GraspGeneratorTest tester(num_tests);
-  //tester.testBoxGrasps();
-  tester.testCylinderGrasps();
+  tester.testBoxGrasps();
+  //tester.testCylinderGrasps();
 
   // Benchmark time
   double duration = (ros::WallTime::now() - start_time).toSec() * 1e3;
