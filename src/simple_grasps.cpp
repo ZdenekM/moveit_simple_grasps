@@ -401,6 +401,8 @@ bool SimpleGrasps::generateCylinderGrasps(const shape_msgs::SolidPrimitive & sha
             grasp_pose.translation() = Eigen::Vector3d(dx, dy, dz);
             addNewGrasp(grasp, grasp_pose, possible_grasps);
         }
+    } else {
+        ROS_INFO("Not generating Cylinder grasps: wy: %f, opening: %f", wy, grasp_data.pre_grasp_opening_);
     }
 
     ROS_INFO_STREAM_NAMED("grasp", "Generated " << possible_grasps.size() << " grasps." );

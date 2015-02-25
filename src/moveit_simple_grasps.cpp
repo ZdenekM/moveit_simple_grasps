@@ -111,7 +111,7 @@ bool MoveitSimpleGrasps::createPrimitiveFromMesh(const shape_msgs::Mesh & mesh, 
         return true;
     } else if(shape_type == shape_msgs::SolidPrimitive::CYLINDER) {
         shape.dimensions.resize(2);
-        shape.dimensions[shape_msgs::SolidPrimitive::CYLINDER_RADIUS] = std::max(wx, wy);
+        shape.dimensions[shape_msgs::SolidPrimitive::CYLINDER_RADIUS] = 0.5 * std::max(wx, wy);
         shape.dimensions[shape_msgs::SolidPrimitive::CYLINDER_HEIGHT] = wz;
         return true;
 
