@@ -368,7 +368,7 @@ bool SimpleGrasps::generateCylinderGrasps(const shape_msgs::SolidPrimitive & sha
             // side around
             for(double da = 0.0; da < 2 * M_PI; da += grasp_data.angular_discretization_) {
                 double grasp_radius = 0.5 * wx - grasp_data.grasp_depth_;
-                const double over_center_max = 0.015;
+                const double over_center_max = 0.01;
                 // we grasp as deep as we can, but if we reach past the center of something round,
                 // prefer the center
                 if(grasp_radius < -over_center_max)
