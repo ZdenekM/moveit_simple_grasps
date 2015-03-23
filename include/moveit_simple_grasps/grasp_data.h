@@ -56,6 +56,7 @@ public:
   geometry_msgs::Pose grasp_pose_to_eef_pose_; // Convert generic grasp pose to this end effector's frame of reference
   trajectory_msgs::JointTrajectory pre_grasp_posture_; // when the end effector is in "open" position
   trajectory_msgs::JointTrajectory grasp_posture_; // when the end effector is in "close" position
+  trajectory_msgs::JointTrajectory post_place_posture_; // when the end effector is in "open" after placing
   std::string base_link_; // name of global frame with z pointing up
   std::string ee_parent_link_; // the last link in the kinematic chain before the end effector, e.g. "/gripper_roll_link"
   std::string ee_group_; // the end effector name

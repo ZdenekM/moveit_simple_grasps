@@ -73,7 +73,7 @@ void SimpleGrasps::initializeGrasp(moveit_msgs::Grasp & grasp, const GraspData &
     grasp.grasp_quality = 0.0;
 
     // Motions
-    grasp.pre_grasp_approach.direction.header.stamp = ros::Time::now();
+    grasp.pre_grasp_approach.direction.header.stamp = ros::Time(0);
     grasp.pre_grasp_approach.direction.header.frame_id = grasp_data.ee_parent_link_;
     grasp.pre_grasp_approach.direction.vector.x = 1;
     grasp.pre_grasp_approach.direction.vector.y = 0;
@@ -81,7 +81,7 @@ void SimpleGrasps::initializeGrasp(moveit_msgs::Grasp & grasp, const GraspData &
     grasp.pre_grasp_approach.desired_distance = grasp_data.approach_retreat_desired_dist_;
     grasp.pre_grasp_approach.min_distance = grasp_data.approach_retreat_min_dist_;
 
-    grasp.post_grasp_retreat.direction.header.stamp = ros::Time::now();
+    grasp.post_grasp_retreat.direction.header.stamp = ros::Time(0);
     grasp.post_grasp_retreat.direction.header.frame_id = grasp_data.base_link_;
     grasp.post_grasp_retreat.direction.vector.x = 0;
     grasp.post_grasp_retreat.direction.vector.y = 0;
@@ -89,7 +89,7 @@ void SimpleGrasps::initializeGrasp(moveit_msgs::Grasp & grasp, const GraspData &
     grasp.post_grasp_retreat.desired_distance = grasp_data.approach_retreat_desired_dist_;
     grasp.post_grasp_retreat.min_distance = grasp_data.approach_retreat_min_dist_;
 
-    grasp.post_place_retreat.direction.header.stamp = ros::Time::now();
+    grasp.post_place_retreat.direction.header.stamp = ros::Time(0);
     grasp.post_place_retreat.direction.header.frame_id = grasp_data.ee_parent_link_;
     grasp.post_place_retreat.direction.vector.x = -1;
     grasp.post_place_retreat.direction.vector.y = 0;

@@ -70,10 +70,12 @@ bool GraspData::loadRobotGraspData(const ros::NodeHandle& nh, const std::string&
   std::vector<std::string> joint_names;
   std::vector<double> pre_grasp_posture; // todo: remove all underscore post-fixes
   std::vector<double> grasp_posture;
+  std::vector<double> post_place_posture;
   std::vector<double> grasp_pose_to_eef;
   std::vector<double> grasp_pose_to_eef_rotation;
   double pregrasp_time_from_start;
   double grasp_time_from_start;
+  double postplace_time_from_start;
   std::string end_effector_name;
   std::string end_effector_parent_link;
 
@@ -112,6 +114,13 @@ bool GraspData::loadRobotGraspData(const ros::NodeHandle& nh, const std::string&
     return false;
   }
   child_nh.getParam("grasp_time_from_start", grasp_time_from_start);
+
+  if (!child_nh.hasParam("postplace_time_from_start"))
+  {
+    ROS_ERROR_STREAM_NAMED("grasp_data_loader","Grasp configuration parameter `postplace_time_from_start` missing from rosparam server. Did you load your end effector's configuration yaml file?");
+    return false;
+  }
+  child_nh.getParam("postplace_time_from_start", postplace_time_from_start);
 
   // Load a param
   if (!child_nh.hasParam("end_effector_name"))
@@ -166,6 +175,18 @@ bool GraspData::loadRobotGraspData(const ros::NodeHandle& nh, const std::string&
   {
     ROS_ASSERT(grasp_posture_list[i].getType() == XmlRpc::XmlRpcValue::TypeDouble);
     grasp_posture.push_back(static_cast<double>(grasp_posture_list[i]));
+  }
+
+  if(child_nh.hasParam("postplace_posture"))
+  {
+    XmlRpc::XmlRpcValue postp_posture_list;
+    child_nh.getParam("postplace_posture", postp_posture_list);
+    ROS_ASSERT(postp_posture_list.getType() == XmlRpc::XmlRpcValue::TypeArray);
+    for (int32_t i = 0; i < postp_posture_list.size(); ++i)
+    {
+      ROS_ASSERT(postp_posture_list[i].getType() == XmlRpc::XmlRpcValue::TypeDouble);
+      post_place_posture.push_back(static_cast<double>(postp_posture_list[i]));
+    }
   }
 
   ROS_ASSERT(child_nh.hasParam("grasp_pose_to_eef"));
@@ -253,7 +274,19 @@ bool GraspData::loadRobotGraspData(const ros::NodeHandle& nh, const std::string&
   grasp_posture_.points[0].positions = grasp_posture;
   grasp_posture_.points[0].time_from_start = ros::Duration(grasp_time_from_start);
 
-  // -------------------------------
+  // Create post-place posture if specified
+  if(!post_place_posture.empty())
+  {
+    post_place_posture_.header.frame_id = base_link_;
+    post_place_posture_.header.stamp = ros::Time::now();
+    // Name of joints:
+    post_place_posture_.joint_names = joint_names;
+    // Position of joints
+    post_place_posture_.points.resize(1);
+    post_place_posture_.points[0].positions = post_place_posture;
+    post_place_posture_.points[0].time_from_start = ros::Duration(postplace_time_from_start);
+  }
+
   // SRDF Info
   ee_parent_link_ = end_effector_parent_link;
   ee_group_ = end_effector_name;
@@ -273,6 +306,7 @@ void GraspData::print()
   std::cout << "pre_grasp_posture_: \n" <<pre_grasp_posture_<<std::endl;
   std::cout << "pre_grasp_opening: \n" << pre_grasp_opening_ << std::endl;
   std::cout << "grasp_posture_: \n" <<grasp_posture_<<std::endl;
+  std::cout << "post_place_posture_: \n" << post_place_posture_ << std::endl;
   std::cout << "base_link_: " <<base_link_<<std::endl;
   std::cout << "ee_parent_link_: " <<ee_parent_link_<<std::endl;
   std::cout << "ee_group_: " <<ee_group_<<std::endl;
