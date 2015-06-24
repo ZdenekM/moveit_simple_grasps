@@ -12,18 +12,22 @@ left_gripper:
     end_effector_name: 'left_gripper'  #ee group name FIXME: moveit group name, not eef name?!?
 
     #actuated joints in end effector    FIXME
-    joints : ['l_gripper_motor_screw_joint']
+    joints : ['l_gripper_motor_screw_joint',
+        'l_gripper_l_finger_joint',
+        'l_gripper_r_finger_joint',
+        'l_gripper_r_finger_tip_joint',
+        'l_gripper_l_finger_tip_joint']
 
     #open position
-    pregrasp_posture : [1.0]
+    pregrasp_posture : [1.0, 0.477, 0.477, 0.477, 0.477]
     pregrasp_time_from_start : 25.0  # TODO ???
     pregrasp_opening: 0.085
 
     #close position
-    grasp_posture : [0.0]
+    grasp_posture : [0.0, 0.002, 0.002, 0.002, 0.002]
     grasp_time_from_start : 25.0
 
-    postplace_posture : [1.0]
+    postplace_posture : [1.0, 0.477, 0.477, 0.477, 0.477]
     postplace_time_from_start : 25.0
 
     #desired pose from end effector to grasp - [x,y,z]
@@ -47,18 +51,22 @@ right_gripper:
 
     #actuated joints in end effector
     #joints : ['r_gripper_joint']
-    joints : ['r_gripper_motor_screw_joint']
+    joints : ['r_gripper_motor_screw_joint',
+        'r_gripper_l_finger_joint',
+        'r_gripper_r_finger_joint',
+        'r_gripper_r_finger_tip_joint',
+        'r_gripper_l_finger_tip_joint']
 
     #open position
-    pregrasp_posture : [1.0]
+    pregrasp_posture : [1.0, 0.477, 0.477, 0.477, 0.477]
     pregrasp_time_from_start : 25.0
     pregrasp_opening: 0.085
 
     #close position
-    grasp_posture : [0.0]
+    grasp_posture : [0.0, 0.002, 0.002, 0.002, 0.002]
     grasp_time_from_start : 25.0
 
-    postplace_posture : [1.0]
+    postplace_posture : [1.0, 0.477, 0.477, 0.477, 0.477]
     postplace_time_from_start : 25.0
 
     #desired pose from end effector to grasp - [x,y,z]
