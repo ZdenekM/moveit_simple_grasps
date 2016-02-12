@@ -74,7 +74,7 @@ static const double TABLE_WIDTH = .85;
 static const double TABLE_DEPTH = .47;
 static const double TABLE_X = 0.66;
 static const double TABLE_Y = 0;
-static const double TABLE_Z = -0.9/2+0.01;
+static const double TABLE_Z = 0.9/2+0.01;
 
 static const double BLOCK_SIZE = 0.04;
 
@@ -112,7 +112,7 @@ public:
   {
     // Get arm info from param server
     nh_.param("arm", arm_, std::string("left"));
-    nh_.param("ee_group_name", ee_group_name_, std::string(arm_ + "_hand"));
+    nh_.param("ee_group_name", ee_group_name_, std::string(arm_ + "_gripper"));
     planning_group_name_ = arm_ + "_arm";
 
     ROS_INFO_STREAM_NAMED("test","Arm: " << arm_);
@@ -134,7 +134,12 @@ public:
     visual_tools_->setLifetime(40.0);
     visual_tools_->setMuted(false);
     visual_tools_->loadEEMarker(grasp_data_.ee_group_, planning_group_name_);
-    visual_tools_->setFloorToBaseHeight(-0.9);
+    //visual_tools_->setFloorToBaseHeight(-0.9);
+    visual_tools_->loadMarkerPub();
+    visual_tools_->loadCollisionPub();
+    visual_tools_->loadTrajectoryPub();
+
+    ros::Duration(2.0).sleep();
 
     // Clear out old collision objects just because
     //visual_tools_->removeAllCollisionObjects();
@@ -182,7 +187,7 @@ public:
       grasp_filter_->filterGrasps(possible_grasps, ik_solutions, filter_pregrasps, grasp_data_.ee_parent_link_, planning_group_name_);
 
       // Visualize them
-      visual_tools_->publishAnimatedGrasps(possible_grasps, grasp_data_.ee_parent_link_);      
+      //visual_tools_->publishAnimatedGrasps(possible_grasps, grasp_data_.ee_parent_link_);      
       visual_tools_->publishIKSolutions(ik_solutions, planning_group_name_, 0.25);
 
       // Make sure ros is still going
@@ -201,11 +206,11 @@ public:
 
     start_object_pose.position.x = 0.8;
     start_object_pose.position.y = -0.5;
-    start_object_pose.position.z = 0.02;
+    start_object_pose.position.z = 1.02;
 
-    end_object_pose.position.x = 0.25;
+    end_object_pose.position.x = 0.45;
     end_object_pose.position.y = 0.15;
-    end_object_pose.position.z = 0.02;
+    end_object_pose.position.z = 1.02;
 
     // Orientation
     double angle = M_PI / 1.5;

@@ -51,7 +51,12 @@
 namespace baxter_pick_place
 {
 
-static const double BLOCK_SIZE = 0.04;
+static const double BLOCK_SIZE_X = 0.08;
+static const double BLOCK_SIZE_Y = 0.25;
+static const double BLOCK_SIZE_Z = 0.30;
+
+static const double CYL_RADIUS = 0.14;
+static const double CYL_HEIGHT = 0.11;
 
 class GraspGeneratorTest
 {
@@ -73,20 +78,21 @@ private:
   std::string ee_group_name_;
   std::string planning_group_name_;
 
+  int num_tests_;
 public:
 
   // Constructor
   GraspGeneratorTest(int num_tests)
-    : nh_("~")
+    : nh_("~"), num_tests_(num_tests)
   {
     nh_.param("arm", arm_, std::string("left"));
-    nh_.param("ee_group_name", ee_group_name_, std::string(arm_ + "_hand"));
+    nh_.param("ee_group_name", ee_group_name_, std::string(arm_ + "_gripper"));
     planning_group_name_ = arm_ + "_arm";
 
     ROS_INFO_STREAM_NAMED("test","Arm: " << arm_);
     ROS_INFO_STREAM_NAMED("test","End Effector: " << ee_group_name_);
     ROS_INFO_STREAM_NAMED("test","Planning Group: " << planning_group_name_);
-    
+
     // ---------------------------------------------------------------------------------------------
     // Load grasp data specific to our robot
     if (!grasp_data_.loadRobotGraspData(nh_, ee_group_name_))
@@ -94,80 +100,139 @@ public:
 
     // ---------------------------------------------------------------------------------------------
     // Load the Robot Viz Tools for publishing to Rviz
-    visual_tools_.reset(new moveit_visual_tools::MoveItVisualTools(grasp_data_.base_link_));
+    visual_tools_.reset(new moveit_visual_tools::VisualTools(grasp_data_.base_link_));
+    visual_tools_->loadMarkerPub();
     visual_tools_->setLifetime(120.0);
     visual_tools_->setMuted(false);
-    visual_tools_->loadMarkerPub();
+    ros::Duration(2.0).sleep();
+    visual_tools_->loadEEMarker(grasp_data_.ee_group_, planning_group_name_);
 
     // ---------------------------------------------------------------------------------------------
     // Load grasp generator
-    simple_grasps_.reset( new moveit_simple_grasps::SimpleGrasps(visual_tools_) );
+    simple_grasps_.reset( new moveit_simple_grasps::SimpleGrasps());
+    //simple_grasps_.reset( new moveit_simple_grasps::SimpleGrasps(visual_tools_) );
+  }
 
-    geometry_msgs::Pose pose;
-    visual_tools_->generateEmptyPose(pose);
-
-    // ---------------------------------------------------------------------------------------------
-    // Animate open and closing end effector
-
-    for (std::size_t i = 0; i < 4; ++i)
-    {
-      // Test visualization of end effector in OPEN position
-      grasp_data_.setRobotStatePreGrasp( visual_tools_->getSharedRobotState() );
-      visual_tools_->loadEEMarker(grasp_data_.ee_group_, planning_group_name_);
-      visual_tools_->publishEEMarkers(pose, rviz_visual_tools::ORANGE, "test_eef");
-      ros::Duration(1.0).sleep();
-
-      // Test visualization of end effector in CLOSED position
-      grasp_data_.setRobotStateGrasp( visual_tools_->getSharedRobotState() );
-      visual_tools_->loadEEMarker(grasp_data_.ee_group_, planning_group_name_);
-      visual_tools_->publishEEMarkers(pose, rviz_visual_tools::GREEN, "test_eef");
-      ros::Duration(1.0).sleep();      
-    }
-
+  void testBoxGrasps()
+  {
     // ---------------------------------------------------------------------------------------------
     // Generate grasps for a bunch of random objects
-    geometry_msgs::Pose object_pose;
+    geometry_msgs::PoseStamped object_pose;
+    object_pose.header.frame_id = grasp_data_.base_link_;
     std::vector<moveit_msgs::Grasp> possible_grasps;
+
+    // Allow ROS to catchup
+    ros::Duration(2.0).sleep();
 
     // Loop
     int i = 0;
     while(ros::ok())
     {
-      ROS_INFO_STREAM_NAMED("test","Adding random object " << i+1 << " of " << num_tests);
+      ROS_INFO_STREAM_NAMED("test","Adding random object " << i+1 << " of " << num_tests_);
 
       // Remove randomness when we are only running one test
-      if (num_tests == 1)
-        generateTestObject(object_pose);
+      if (num_tests_ == 1)
+        generateTestObject(object_pose.pose);
       else
-        generateRandomObject(object_pose);
+        generateRandomObject(object_pose.pose);
 
       // Show the block
-      visual_tools_->publishBlock(object_pose, rviz_visual_tools::BLUE, BLOCK_SIZE);
+      visual_tools_->publishBlock(object_pose, moveit_visual_tools::BLUE, BLOCK_SIZE);
 
       possible_grasps.clear();
 
       // Generate set of grasps for one object
-      simple_grasps_->generateBlockGrasps( object_pose, grasp_data_, possible_grasps);
+      shape_msgs::SolidPrimitive box;
+      box.type = shape_msgs::SolidPrimitive::BOX;
+      box.dimensions.resize(3);
+      box.dimensions[0] = BLOCK_SIZE_X;
+      box.dimensions[1] = BLOCK_SIZE_Y;
+      box.dimensions[2] = BLOCK_SIZE_Z;
+
+      //ROS_INFO("Grasps Block Grasps");
+      //simple_grasps_->generateBlockGrasps( object_pose, grasp_data_, possible_grasps);
+      //visual_tools_->publishGrasps(possible_grasps, grasp_data_.ee_parent_link_);
+
+      possible_grasps.clear();
+      ROS_INFO("Generating Box Grasps");
+      simple_grasps_->generateShapeGrasps(box, false, true, object_pose, grasp_data_, possible_grasps);
 
       // Visualize them
-      visual_tools_->publishAnimatedGrasps(possible_grasps, grasp_data_.ee_parent_link_);
-      //visual_tools_->publishGrasps(possible_grasps, grasp_data_.ee_parent_link_);
+      //visual_tools_->publishAnimatedGrasps(possible_grasps, grasp_data_.ee_parent_link_);
+      visual_tools_->publishGrasps(possible_grasps, grasp_data_.ee_parent_link_);
 
       // Test if done
       ++i;
-      if( i >= num_tests )
+      if( i >= num_tests_ )
         break;
     }
   }
+
+  void testCylinderGrasps()
+  {
+    // ---------------------------------------------------------------------------------------------
+    // Generate grasps for a bunch of random objects
+    geometry_msgs::PoseStamped object_pose;
+    object_pose.header.frame_id = grasp_data_.base_link_;
+    std::vector<moveit_msgs::Grasp> possible_grasps;
+
+    // Allow ROS to catchup
+    ros::Duration(2.0).sleep();
+
+    // Loop
+    int i = 0;
+    while(ros::ok())
+    {
+      ROS_INFO_STREAM_NAMED("test","Adding random object " << i+1 << " of " << num_tests_);
+
+      // Remove randomness when we are only running one test
+      if (num_tests_ == 1) {
+        generateTestObject(object_pose.pose);
+        object_pose.pose.position.x += 0.5;
+      } else {
+        generateRandomObject(object_pose.pose);
+      }
+
+      visual_tools_->publishCylinder(object_pose.pose, moveit_visual_tools::BLUE,
+              CYL_HEIGHT, CYL_RADIUS);
+
+      possible_grasps.clear();
+
+      // Generate set of grasps for one object
+      shape_msgs::SolidPrimitive cyl;
+      cyl.type = shape_msgs::SolidPrimitive::CYLINDER;
+      cyl.dimensions.resize(2);
+      cyl.dimensions[shape_msgs::SolidPrimitive::CYLINDER_RADIUS] = CYL_RADIUS;
+      cyl.dimensions[shape_msgs::SolidPrimitive::CYLINDER_HEIGHT] = CYL_HEIGHT;
+
+      //ROS_INFO("Grasps Block Grasps");
+      //simple_grasps_->generateBlockGrasps( object_pose, grasp_data_, possible_grasps);
+      //visual_tools_->publishGrasps(possible_grasps, grasp_data_.ee_parent_link_);
+
+      possible_grasps.clear();
+      ROS_INFO("Generating Cylinder Grasps");
+      simple_grasps_->generateShapeGrasps(cyl, false, true, object_pose, grasp_data_, possible_grasps);
+
+      // Visualize them
+      //visual_tools_->publishAnimatedGrasps(possible_grasps, grasp_data_.ee_parent_link_);
+      visual_tools_->publishGrasps(possible_grasps, grasp_data_.ee_parent_link_);
+
+      // Test if done
+      ++i;
+      if( i >= num_tests_ )
+        break;
+    }
+  }
+
 
   void generateTestObject(geometry_msgs::Pose& object_pose)
   {
     // Position
     geometry_msgs::Pose start_object_pose;
 
-    start_object_pose.position.x = 0.4;
-    start_object_pose.position.y = -0.2;
-    start_object_pose.position.z = 0.0;
+    start_object_pose.position.x = 0.7;
+    start_object_pose.position.y = 0.2;
+    start_object_pose.position.z = 1.0;
 
     // Orientation
     double angle = M_PI / 1.5;
@@ -186,9 +251,9 @@ public:
   void generateRandomObject(geometry_msgs::Pose& object_pose)
   {
     // Position
-    object_pose.position.x = fRand(0.1,0.9); //0.55);
-    object_pose.position.y = fRand(-0.28,0.28);
-    object_pose.position.z = 0.02;
+    object_pose.position.x = fRand(0.4,1.2); //0.55);
+    object_pose.position.y = fRand(-0.38,0.38);
+    object_pose.position.z = 0.5;
 
     // Orientation
     double angle = M_PI * fRand(0.1,1);
@@ -201,7 +266,7 @@ public:
 
   double fRand(double fMin, double fMax)
   {
-    double f = (double)rand() / RAND_MAX;
+    double f = drand48();
     return fMin + f * (fMax - fMin);
   }
 
@@ -209,10 +274,9 @@ public:
 
 } // namespace
 
-
 int main(int argc, char *argv[])
 {
-  int num_tests = 10;
+  int num_tests = 1;
   ros::init(argc, argv, "grasp_generator_test");
 
   ROS_INFO_STREAM_NAMED("main","Simple Grasps Test");
@@ -221,18 +285,19 @@ int main(int argc, char *argv[])
   spinner.start();
 
   // Seed random
-  srand(ros::Time::now().toSec());
+  srand48(ros::Time::now().toSec());
 
   // Benchmark time
-  ros::Time start_time;
-  start_time = ros::Time::now();
+  ros::WallTime start_time = ros::WallTime::now();
 
   // Run Tests
   baxter_pick_place::GraspGeneratorTest tester(num_tests);
+  tester.testBoxGrasps();
+  //tester.testCylinderGrasps();
 
   // Benchmark time
-  double duration = (ros::Time::now() - start_time).toNSec() * 1e-6;
-  ROS_INFO_STREAM_NAMED("","Total time: " << duration);
+  double duration = (ros::WallTime::now() - start_time).toSec() * 1e3;
+  ROS_INFO_STREAM_NAMED("","Total time: " << duration << " ms");
   //std::cout << duration << "\t" << num_tests << std::endl;
 
   ros::Duration(1.0).sleep(); // let rviz markers finish publishing

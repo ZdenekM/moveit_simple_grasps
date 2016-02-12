@@ -86,8 +86,8 @@ private:
   // Transform from frame of box to global frame
   Eigen::Affine3d object_global_transform_;
 
-  // Display more output both in console and in Rviz (with arrows and markers)
-  bool verbose_;
+  // Transform from  grasp pose to EEF frame
+  Eigen::Affine3d eef_conversion_pose_;
 
 public:
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW // Eigen requires 128-bit alignment for the Eigen::Vector2d's array (of 2 doubles). With GCC, this is done with a attribute ((aligned(16))).
@@ -95,7 +95,7 @@ public:
   /**
    * \brief Constructor
    */
-  SimpleGrasps(moveit_visual_tools::MoveItVisualToolsPtr rviz_tools, bool verbose = false);
+  SimpleGrasps(moveit_visual_tools::VisualToolsPtr rviz_tools = moveit_visual_tools::VisualToolsPtr());
 
   /**
    * \brief Destructor
@@ -112,6 +112,23 @@ public:
 
     return true;
   }
+
+  /// Generate grasps for a primitive.
+  bool generateShapeGrasps(const shape_msgs::SolidPrimitive & shape, bool enclosure, bool edge,
+          const geometry_msgs::PoseStamped & object_pose,
+          const GraspData& grasp_data, std::vector<moveit_msgs::Grasp>& possible_grasps);
+
+  bool generateBoxGrasps(const shape_msgs::SolidPrimitive & shape, const geometry_msgs::PoseStamped & object_pose,
+          const GraspData& grasp_data, std::vector<moveit_msgs::Grasp>& possible_grasps);
+
+  bool generateBoxEdgeGrasps(const shape_msgs::SolidPrimitive & shape, const geometry_msgs::PoseStamped & object_pose,
+          const GraspData& grasp_data, std::vector<moveit_msgs::Grasp>& possible_grasps);
+
+  bool generateCylinderGrasps(const shape_msgs::SolidPrimitive & shape, const geometry_msgs::PoseStamped& object_pose,
+          const GraspData& grasp_data, std::vector<moveit_msgs::Grasp>& possible_grasps);
+
+  bool generateCylinderEdgeGrasps(const shape_msgs::SolidPrimitive & shape, const geometry_msgs::PoseStamped& object_pose,
+          const GraspData& grasp_data, std::vector<moveit_msgs::Grasp>& possible_grasps);
 
   /**
    * \brief Create all possible grasp positions for a block
@@ -154,6 +171,7 @@ public:
    */
   static geometry_msgs::PoseStamped getPreGraspPose(const moveit_msgs::Grasp &grasp, const std::string &ee_parent_link);
 
+#if 0
   /**
    * \brief Print debug info
    * DEPRECATRED: moved to grasp_data.cpp
@@ -164,13 +182,26 @@ public:
     ROS_INFO_STREAM_NAMED("grasp","Base Link: " << data.base_link_);
     ROS_INFO_STREAM_NAMED("grasp","EE Parent Link: " << data.ee_parent_link_);
     ROS_INFO_STREAM_NAMED("grasp","Grasp Depth: " << data.grasp_depth_);
-    ROS_INFO_STREAM_NAMED("grasp","Angle Resolution: " << data.angle_resolution_);
+    ROS_INFO_STREAM_NAMED("grasp","Angle Steps: " << data.angle_steps_);
     ROS_INFO_STREAM_NAMED("grasp","Approach Retreat Desired Dist: " << data.approach_retreat_desired_dist_);
     ROS_INFO_STREAM_NAMED("grasp","Approach Retreat Min Dist: " << data.approach_retreat_min_dist_);
     ROS_INFO_STREAM_NAMED("grasp","Pregrasp Posture: \n" << data.pre_grasp_posture_);
     ROS_INFO_STREAM_NAMED("grasp","Grasp Posture: \n" << data.grasp_posture_);
     ROS_INFO_STREAM_NAMED("grasp","---------------------------------------------------\n");
   }
+#endif
+
+protected:
+
+  /// Fill the grasp specific pose information from a local grasp pose.
+  void fillGraspFromLocalGraspPose(const Eigen::Affine3d & local_grasp, moveit_msgs::Grasp & grasp);
+
+  /// Initialize a grasp with common data from grasp_data.
+  void initializeGrasp(moveit_msgs::Grasp & grasp, const GraspData & grasp_data,
+          const std_msgs::Header & grasp_header);
+
+  void addNewGrasp(moveit_msgs::Grasp & grasp, const Eigen::Affine3d & local_grasp_pose,
+          std::vector<moveit_msgs::Grasp> & possible_grasps);
 
 }; // end of class
 
