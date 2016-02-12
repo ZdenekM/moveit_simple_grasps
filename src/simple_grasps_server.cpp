@@ -127,6 +127,7 @@ namespace moveit_simple_grasps
     // which arm are we using
     std::string side_;
     std::string planning_group_name_;
+    const moveit::core::JointModelGroup* planning_group = NULL;
 
   public:
 
@@ -146,8 +147,9 @@ namespace moveit_simple_grasps
       // Load the Robot Viz Tools for publishing to Rviz
       visual_tools_.reset(new moveit_visual_tools::MoveItVisualTools(grasp_data_.base_link_));
       visual_tools_->setLifetime(120.0);
-      visual_tools_->setMuted(false);
-      visual_tools_->loadEEMarker(grasp_data_.ee_group_, planning_group_name_);
+      //visual_tools_->setMuted(false);
+      planning_group = visual_tools_->getRobotModel()->getJointModelGroup(planning_group_name_);
+      visual_tools_->loadEEMarker(planning_group);
 
       // ---------------------------------------------------------------------------------------------
       // Load grasp generator

@@ -5,7 +5,7 @@
 namespace moveit_simple_grasps
 {
 
-MoveitSimpleGrasps::MoveitSimpleGrasps(moveit_visual_tools::VisualToolsPtr rviz_tools) :
+MoveitSimpleGrasps::MoveitSimpleGrasps(moveit_visual_tools::MoveItVisualToolsPtr rviz_tools) :
     simple_grasps_(new SimpleGrasps(rviz_tools))
 {
 }

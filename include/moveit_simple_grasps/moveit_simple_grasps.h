@@ -11,7 +11,7 @@ namespace moveit_simple_grasps
 class MoveitSimpleGrasps
 {
     public:
-        MoveitSimpleGrasps(moveit_visual_tools::VisualToolsPtr rviz_tools = moveit_visual_tools::VisualToolsPtr());
+        MoveitSimpleGrasps(moveit_visual_tools::MoveItVisualToolsPtr rviz_tools = moveit_visual_tools::MoveItVisualToolsPtr());
 
         /// Generate grasps for a CollisionObject.
         /**

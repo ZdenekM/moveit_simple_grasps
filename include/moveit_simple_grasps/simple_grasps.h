@@ -46,6 +46,7 @@
 
 // Msgs
 #include <geometry_msgs/PoseArray.h>
+#include <shape_msgs/SolidPrimitive.h>
 
 // MoveIt
 #include <moveit_msgs/Grasp.h>
@@ -95,7 +96,7 @@ public:
   /**
    * \brief Constructor
    */
-  SimpleGrasps(moveit_visual_tools::VisualToolsPtr rviz_tools = moveit_visual_tools::VisualToolsPtr());
+  SimpleGrasps(moveit_visual_tools::MoveItVisualToolsPtr rviz_tools = moveit_visual_tools::MoveItVisualToolsPtr());
 
   /**
    * \brief Destructor

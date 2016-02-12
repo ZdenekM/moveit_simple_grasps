@@ -77,6 +77,7 @@ private:
   std::string arm_;
   std::string ee_group_name_;
   std::string planning_group_name_;
+  const moveit::core::JointModelGroup* planning_group = NULL;
 
   int num_tests_;
 public:
@@ -100,12 +101,13 @@ public:
 
     // ---------------------------------------------------------------------------------------------
     // Load the Robot Viz Tools for publishing to Rviz
-    visual_tools_.reset(new moveit_visual_tools::VisualTools(grasp_data_.base_link_));
+    visual_tools_.reset(new moveit_visual_tools::MoveItVisualTools(grasp_data_.base_link_));
     visual_tools_->loadMarkerPub();
     visual_tools_->setLifetime(120.0);
-    visual_tools_->setMuted(false);
+    //visual_tools_->setMuted(false);
     ros::Duration(2.0).sleep();
-    visual_tools_->loadEEMarker(grasp_data_.ee_group_, planning_group_name_);
+    planning_group = visual_tools_->getRobotModel()->getJointModelGroup(planning_group_name_);
+    visual_tools_->loadEEMarker(planning_group);
 
     // ---------------------------------------------------------------------------------------------
     // Load grasp generator
@@ -137,7 +139,8 @@ public:
         generateRandomObject(object_pose.pose);
 
       // Show the block
-      visual_tools_->publishBlock(object_pose, moveit_visual_tools::BLUE, BLOCK_SIZE);
+      visual_tools_->publishBlock(object_pose.pose, rviz_visual_tools::BLUE,
+              BLOCK_SIZE_X);
 
       possible_grasps.clear();
 
@@ -159,7 +162,7 @@ public:
 
       // Visualize them
       //visual_tools_->publishAnimatedGrasps(possible_grasps, grasp_data_.ee_parent_link_);
-      visual_tools_->publishGrasps(possible_grasps, grasp_data_.ee_parent_link_);
+      visual_tools_->publishGrasps(possible_grasps, planning_group);
 
       // Test if done
       ++i;
@@ -193,7 +196,7 @@ public:
         generateRandomObject(object_pose.pose);
       }
 
-      visual_tools_->publishCylinder(object_pose.pose, moveit_visual_tools::BLUE,
+      visual_tools_->publishCylinder(object_pose.pose, rviz_visual_tools::BLUE,
               CYL_HEIGHT, CYL_RADIUS);
 
       possible_grasps.clear();
@@ -215,7 +218,7 @@ public:
 
       // Visualize them
       //visual_tools_->publishAnimatedGrasps(possible_grasps, grasp_data_.ee_parent_link_);
-      visual_tools_->publishGrasps(possible_grasps, grasp_data_.ee_parent_link_);
+      visual_tools_->publishGrasps(possible_grasps, planning_group);
 
       // Test if done
       ++i;

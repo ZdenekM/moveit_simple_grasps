@@ -137,7 +137,7 @@ void SimpleGrasps::addNewGrasp(moveit_msgs::Grasp & grasp, const Eigen::Affine3d
     if(visual_tools_)
     {
         tf::poseEigenToMsg(object_global_transform_ * local_grasp_pose, grasp.grasp_pose.pose);
-        visual_tools_->publishArrow(grasp.grasp_pose.pose, moveit_visual_tools::GREEN);
+        visual_tools_->publishArrow(grasp.grasp_pose.pose, rviz_visual_tools::GREEN);
     }
 
     fillGraspFromLocalGraspPose(local_grasp_pose, grasp);
@@ -609,7 +609,7 @@ bool SimpleGrasps::generateAxisGrasps(
     if(visual_tools_)
     {
       tf::poseEigenToMsg(object_global_transform_ * grasp_pose, grasp_pose_msg.pose);
-      visual_tools_->publishArrow(grasp_pose_msg.pose, moveit_visual_tools::GREEN);
+      visual_tools_->publishArrow(grasp_pose_msg.pose, rviz_visual_tools::GREEN);
     }
 
     // ------------------------------------------------------------------------
