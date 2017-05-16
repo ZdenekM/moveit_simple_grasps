@@ -104,7 +104,7 @@ void SimpleGrasps::initializeGrasp(moveit_msgs::Grasp & grasp, const GraspData &
 bool SimpleGrasps::generateShapeGrasps(const shape_msgs::SolidPrimitive & shape,
         bool enclosure, bool edge,
         const geometry_msgs::PoseStamped & object_pose,
-        const GraspData& grasp_data, std::vector<moveit_msgs::Grasp>& possible_grasps)
+        const GraspData& grasp_data, std::vector<moveit_msgs::Grasp>& possible_grasps, bool pick_only_y_axis=false)
 {
     if(!enclosure && !edge) {
         ROS_ERROR("%s: called with no enclosure or edge grasps requested.", __func__);
@@ -113,7 +113,7 @@ bool SimpleGrasps::generateShapeGrasps(const shape_msgs::SolidPrimitive & shape,
     if(shape.type == shape_msgs::SolidPrimitive::BOX) {
         bool generated = false;
         if(enclosure)
-            generated |= generateBoxGrasps(shape, object_pose, grasp_data, possible_grasps);
+            generated |= generateBoxGrasps(shape, object_pose, grasp_data, possible_grasps, pick_only_y_axis);
         if(edge)
             generated |= generateBoxEdgeGrasps(shape, object_pose, grasp_data, possible_grasps);
         return generated;
@@ -151,7 +151,7 @@ void SimpleGrasps::addNewGrasp(moveit_msgs::Grasp & grasp, const Eigen::Affine3d
 
 bool SimpleGrasps::generateBoxGrasps(const shape_msgs::SolidPrimitive & shape,
         const geometry_msgs::PoseStamped & object_pose,
-        const GraspData& grasp_data, std::vector<moveit_msgs::Grasp>& possible_grasps)
+        const GraspData& grasp_data, std::vector<moveit_msgs::Grasp>& possible_grasps, bool pick_only_y_axis)
 {
     size_t sizeBefore = possible_grasps.size();
 
@@ -171,41 +171,43 @@ bool SimpleGrasps::generateBoxGrasps(const shape_msgs::SolidPrimitive & shape,
     if(wy <= grasp_data.pre_grasp_opening_) {
         Eigen::Affine3d grasp_pose;
         // sides up
-        for(double dz = -0.5 * wz + box_edge_holdoff; dz <= 0.5 * wz - box_edge_holdoff;
-                dz += grasp_data.linear_discretization_) {
-            double dx = - 0.5 * wx + grasp_data.grasp_depth_;   // depth = how much from border in
-            double dy = 0.0;
+        if (not pick_only_y_axis) {
+            for(double dz = -0.5 * wz + box_edge_holdoff; dz <= 0.5 * wz - box_edge_holdoff;
+                    dz += grasp_data.linear_discretization_) {
+                double dx = - 0.5 * wx + grasp_data.grasp_depth_;   // depth = how much from border in
+                double dy = 0.0;
 
-            grasp.grasp_quality = cos(M_PI_2 * dz/(0.5 * wz));  // the more centered in z the better
+                grasp.grasp_quality = cos(M_PI_2 * dz/(0.5 * wz));  // the more centered in z the better
 
-            grasp_pose = Eigen::AngleAxisd(0.0, Eigen::Vector3d::UnitZ());
-            grasp_pose.translation() = Eigen::Vector3d(dx, dy, dz);
-            addNewGrasp(grasp, grasp_pose, possible_grasps);
+                grasp_pose = Eigen::AngleAxisd(0.0, Eigen::Vector3d::UnitZ());
+                grasp_pose.translation() = Eigen::Vector3d(dx, dy, dz);
+                addNewGrasp(grasp, grasp_pose, possible_grasps);
 
-            // opposing side
-            grasp_pose = Eigen::AngleAxisd(M_PI, Eigen::Vector3d::UnitZ());
-            grasp_pose.translation() = Eigen::Vector3d(-dx, dy, dz);
-            addNewGrasp(grasp, grasp_pose, possible_grasps);
-        }
-        // top
-        for(double dx = -0.5 * wx + box_edge_holdoff; dx <= 0.5 * wx - box_edge_holdoff;
-                dx += grasp_data.linear_discretization_) {
-            double dz = 0.5 * wz - grasp_data.grasp_depth_;
-            double dy = 0.0;
+                // opposing side
+                grasp_pose = Eigen::AngleAxisd(M_PI, Eigen::Vector3d::UnitZ());
+                grasp_pose.translation() = Eigen::Vector3d(-dx, dy, dz);
+                addNewGrasp(grasp, grasp_pose, possible_grasps);
+            }
+            // top
+            for(double dx = -0.5 * wx + box_edge_holdoff; dx <= 0.5 * wx - box_edge_holdoff;
+                    dx += grasp_data.linear_discretization_) {
+                double dz = 0.5 * wz - grasp_data.grasp_depth_;
+                double dy = 0.0;
 
-            // 0.5 to prefer side grasps
-            grasp.grasp_quality = 0.5 * cos(M_PI_2 * dx/(0.5 * wx));  // the more centered in x the better
+                // 0.5 to prefer side grasps
+                grasp.grasp_quality = 0.5 * cos(M_PI_2 * dx/(0.5 * wx));  // the more centered in x the better
 
-            grasp_pose = Eigen::AngleAxisd(0.0, Eigen::Vector3d::UnitZ()) *
-                Eigen::AngleAxisd(M_PI_2, Eigen::Vector3d::UnitY());
-            grasp_pose.translation() = Eigen::Vector3d(dx, dy, dz);
-            addNewGrasp(grasp, grasp_pose, possible_grasps);
+                grasp_pose = Eigen::AngleAxisd(0.0, Eigen::Vector3d::UnitZ()) *
+                    Eigen::AngleAxisd(M_PI_2, Eigen::Vector3d::UnitY());
+                grasp_pose.translation() = Eigen::Vector3d(dx, dy, dz);
+                addNewGrasp(grasp, grasp_pose, possible_grasps);
 
-            // opposing direction
-            grasp_pose = Eigen::AngleAxisd(M_PI, Eigen::Vector3d::UnitZ()) *
-                Eigen::AngleAxisd(M_PI_2, Eigen::Vector3d::UnitY());
-            grasp_pose.translation() = Eigen::Vector3d(dx, dy, dz);
-            addNewGrasp(grasp, grasp_pose, possible_grasps);
+                // opposing direction
+                grasp_pose = Eigen::AngleAxisd(M_PI, Eigen::Vector3d::UnitZ()) *
+                    Eigen::AngleAxisd(M_PI_2, Eigen::Vector3d::UnitY());
+                grasp_pose.translation() = Eigen::Vector3d(dx, dy, dz);
+                addNewGrasp(grasp, grasp_pose, possible_grasps);
+            }
         }
     }
 
@@ -230,24 +232,26 @@ bool SimpleGrasps::generateBoxGrasps(const shape_msgs::SolidPrimitive & shape,
             addNewGrasp(grasp, grasp_pose, possible_grasps);
         }
         // top
-        for(double dy = -0.5 * wy + box_edge_holdoff; dy <= 0.5 * wy - box_edge_holdoff;
-                dy += grasp_data.linear_discretization_) {
-            double dz = 0.5 * wz - grasp_data.grasp_depth_;
-            double dx = 0.0;
+        if (not pick_only_y_axis) {
+            for(double dy = -0.5 * wy + box_edge_holdoff; dy <= 0.5 * wy - box_edge_holdoff;
+                    dy += grasp_data.linear_discretization_) {
+                double dz = 0.5 * wz - grasp_data.grasp_depth_;
+                double dx = 0.0;
 
-            // 0.5 to prefer side grasps
-            grasp.grasp_quality = 0.5 * cos(M_PI_2 * dy/(0.5 * wy));  // the more centered in x the better
+                // 0.5 to prefer side grasps
+                grasp.grasp_quality = 0.5 * cos(M_PI_2 * dy/(0.5 * wy));  // the more centered in x the better
 
-            grasp_pose = Eigen::AngleAxisd(M_PI_2, Eigen::Vector3d::UnitZ()) *
-                Eigen::AngleAxisd(M_PI_2, Eigen::Vector3d::UnitY());
-            grasp_pose.translation() = Eigen::Vector3d(dx, dy, dz);
-            addNewGrasp(grasp, grasp_pose, possible_grasps);
+                grasp_pose = Eigen::AngleAxisd(M_PI_2, Eigen::Vector3d::UnitZ()) *
+                    Eigen::AngleAxisd(M_PI_2, Eigen::Vector3d::UnitY());
+                grasp_pose.translation() = Eigen::Vector3d(dx, dy, dz);
+                addNewGrasp(grasp, grasp_pose, possible_grasps);
 
-            // opposing direction
-            grasp_pose = Eigen::AngleAxisd(-M_PI_2, Eigen::Vector3d::UnitZ()) *
-                Eigen::AngleAxisd(M_PI_2, Eigen::Vector3d::UnitY());
-            grasp_pose.translation() = Eigen::Vector3d(dx, dy, dz);
-            addNewGrasp(grasp, grasp_pose, possible_grasps);
+                // opposing direction
+                grasp_pose = Eigen::AngleAxisd(-M_PI_2, Eigen::Vector3d::UnitZ()) *
+                    Eigen::AngleAxisd(M_PI_2, Eigen::Vector3d::UnitY());
+                grasp_pose.translation() = Eigen::Vector3d(dx, dy, dz);
+                addNewGrasp(grasp, grasp_pose, possible_grasps);
+            }
         }
     }
     ROS_INFO_STREAM_NAMED("grasp", "Generated " << possible_grasps.size() << " grasps." );
