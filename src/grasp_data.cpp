@@ -293,8 +293,8 @@ bool GraspData::loadRobotGraspData(const ros::NodeHandle& nh, const std::string&
 
   // -------------------------------
   // Nums
-  approach_retreat_desired_dist_ = 0.2; // 0.3;
-  approach_retreat_min_dist_ = 0.06;
+  // approach_retreat_desired_dist_ = 0.2; // 0.3;
+  // approach_retreat_min_dist_ = 0.06;
 
   return true;
 }
